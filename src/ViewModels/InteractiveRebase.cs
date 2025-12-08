@@ -131,6 +131,21 @@ namespace SourceGit.ViewModels
             set;
         } = true;
 
+        public bool AutoDetectFixupCommits
+        {
+            get => _autoDetectFixupCommits;
+            set
+            {
+                if (SetProperty(ref _autoDetectFixupCommits, value))
+                {
+                    if (value)
+                        ApplyAutoDetectFixupCommits();
+                    else
+                        ResetAutoDetectedActions();
+                }
+            }
+        }
+
         public AvaloniaList<Models.IssueTracker> IssueTrackers
         {
             get => _repo.IssueTrackers;
@@ -199,6 +214,7 @@ namespace SourceGit.ViewModels
                 Dispatcher.UIThread.Post(() =>
                 {
                     Items.AddRange(list);
+                    AutoDetectFixupCommits = true;
                     UpdateItems();
                     PreSelected = selected;
                     IsLoading = false;
@@ -230,13 +246,19 @@ namespace SourceGit.ViewModels
                 foreach (var item in selected)
                 {
                     if (item.CanSquashOrFixup)
+                    {
                         item.Action = action;
+                        _manuallyModifiedItems.Add(item);
+                    }
                 }
             }
             else
             {
                 foreach (var item in selected)
+                {
                     item.Action = action;
+                    _manuallyModifiedItems.Add(item);
+                }
             }
 
             UpdateItems();
@@ -323,27 +345,155 @@ namespace SourceGit.ViewModels
             return succ;
         }
 
+        private void ApplyAutoDetectFixupCommits()
+        {
+            var fixupsToReorder = new List<(InteractiveRebaseItem fixup, string targetSubject, bool isSquash)>();
+
+            // First pass: identify fixup/squash commits
+            foreach (var item in Items)
+            {
+                var subject = item.Commit.Subject;
+
+                if (subject.StartsWith("fixup! ", StringComparison.Ordinal))
+                {
+                    var targetSubject = subject.Substring(7); // Remove "fixup! " prefix
+                    fixupsToReorder.Add((item, targetSubject, false));
+                }
+                else if (subject.StartsWith("squash! ", StringComparison.Ordinal))
+                {
+                    var targetSubject = subject.Substring(8); // Remove "squash! " prefix
+                    fixupsToReorder.Add((item, targetSubject, true));
+                }
+            }
+
+            // Second pass: reorder fixup/squash commits to be right before their targets
+            // Note: The list is ordered from newest (top, index 0) -> oldest (bottom, index N)
+            // In interactive rebase, fixup commits are applied AFTER their target chronologically,
+            // meaning they are NEWER, so they should appear at a LOWER index (before the target in the list)
+            if (fixupsToReorder.Count > 0)
+            {
+                var reordered = new List<InteractiveRebaseItem>(Items);
+
+                // Process fixups in order (from top to bottom) so that moving items
+                // doesn't affect the indices of fixups we haven't processed yet
+                for (int f = 0; f < fixupsToReorder.Count; f++)
+                {
+                    var (fixupItem, targetSubject, isSquash) = fixupsToReorder[f];
+
+                    // Find the target commit by matching the subject
+                    // Search from the beginning (newest to oldest) to find the first non-fixup commit with this subject
+                    int targetIndex = -1;
+
+                    for (int i = 0; i < reordered.Count; i++)
+                    {
+                        var item = reordered[i];
+                        if (item == fixupItem)
+                            continue;
+
+                        // Check if this commit's subject matches the target
+                        if (item.Commit.Subject.Equals(targetSubject, StringComparison.Ordinal))
+                        {
+                            targetIndex = i;
+                            break; // Use the first match (the target commit)
+                        }
+                    }
+
+                    // If we found the target, move the fixup commit right before it (at the same index)
+                    if (targetIndex >= 0)
+                    {
+                        var currentIndex = reordered.IndexOf(fixupItem);
+                        if (currentIndex >= 0 && currentIndex != targetIndex)
+                        {
+                            // Remove the fixup commit from its current position
+                            reordered.RemoveAt(currentIndex);
+
+                            // Recalculate target index if removal affected it
+                            if (currentIndex < targetIndex)
+                                targetIndex--;
+
+                            // Insert right before the target (fixup will be at targetIndex, target moves to targetIndex+1)
+                            reordered.Insert(targetIndex, fixupItem);
+                        }
+                    }
+                }
+
+                // Update the Items collection with the reordered list
+                Items.Clear();
+                Items.AddRange(reordered);
+            }
+
+            // Now set the actions after reordering is complete
+            foreach (var item in Items)
+            {
+                var subject = item.Commit.Subject;
+
+                if (subject.StartsWith("fixup! ", StringComparison.Ordinal))
+                {
+                    if (!_manuallyModifiedItems.Contains(item))
+                        item.Action = Models.InteractiveRebaseAction.Fixup;
+                }
+                else if (subject.StartsWith("squash! ", StringComparison.Ordinal))
+                {
+                    if (!_manuallyModifiedItems.Contains(item))
+                        item.Action = Models.InteractiveRebaseAction.Squash;
+                }
+            }
+
+            UpdateItems();
+        }
+
+        private void ResetAutoDetectedActions()
+        {
+            // First, restore original order
+            var originalOrder = new List<InteractiveRebaseItem>(Items);
+            originalOrder.Sort((a, b) => b.OriginalOrder.CompareTo(a.OriginalOrder));
+            
+            Items.Clear();
+            Items.AddRange(originalOrder);
+
+            // Then reset actions
+            foreach (var item in Items)
+            {
+                var subject = item.Commit.Subject;
+
+                if ((subject.StartsWith("fixup! ", StringComparison.Ordinal) ||
+                     subject.StartsWith("squash! ", StringComparison.Ordinal)) &&
+                    !_manuallyModifiedItems.Contains(item))
+                {
+                    item.Action = Models.InteractiveRebaseAction.Pick;
+                }
+            }
+
+            UpdateItems();
+        }
+
         private void UpdateItems()
         {
             if (Items.Count == 0)
                 return;
 
-            var hasValidParent = false;
-            for (var i = Items.Count - 1; i >= 0; i--)
+            // Determine which items can be Squash/Fixup.
+            // List order is newest (top, index 0) -> oldest (bottom). A commit can squash/fixup
+            // only if there is already a non-drop commit before it (a parent to squash/fixup into).
+            var hasPreviousNonDrop = false;
+            for (var i = 0; i < Items.Count; i++)
             {
                 var item = Items[i];
-                if (hasValidParent)
+                if (hasPreviousNonDrop)
                 {
                     item.CanSquashOrFixup = true;
                 }
                 else
                 {
                     item.CanSquashOrFixup = false;
+                    // If this item was marked Squash/Fixup but there's no previous non-drop,
+                    // reset it to Pick to keep a valid sequence.
                     if (item.Action == Models.InteractiveRebaseAction.Squash || item.Action == Models.InteractiveRebaseAction.Fixup)
                         item.Action = Models.InteractiveRebaseAction.Pick;
-
-                    hasValidParent = item.Action != Models.InteractiveRebaseAction.Drop;
                 }
+
+                if (item.Action != Models.InteractiveRebaseAction.Drop)
+                    hasPreviousNonDrop = true;
             }
 
             var hasPending = false;
@@ -427,7 +577,7 @@ namespace SourceGit.ViewModels
                         item.ShowEditMessageButton = true;
                         item.FullMessage = builder.ToString();
 
-                        hasPending = false;
+                    	hasPending = false;
                         pendingMessages.Clear();
                     }
                     else
@@ -445,5 +595,7 @@ namespace SourceGit.ViewModels
         private InteractiveRebaseItem _preSelected = null;
         private object _detail = null;
         private CommitDetail _commitDetail = null;
+        private bool _autoDetectFixupCommits = false;
+        private HashSet<InteractiveRebaseItem> _manuallyModifiedItems = new();
     }
 }

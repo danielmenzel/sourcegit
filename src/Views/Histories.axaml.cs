@@ -639,6 +639,20 @@ namespace SourceGit.Views
                 };
                 menu.Items.Add(revert);
 
+                if (!isHead)
+                {
+                    var createFixup = new MenuItem();
+                    createFixup.Header = App.Text("CommitCM.CreateFixupCommit");
+                    createFixup.Icon = App.CreateMenuIcon("Icons.Fix");
+                    createFixup.Click += (_, e) =>
+                    {
+                        if (repo.CanCreatePopup())
+                            repo.ShowPopup(new ViewModels.CreateFixupCommit(repo, commit));
+                        e.Handled = true;
+                    };
+                    menu.Items.Add(createFixup);
+                }
+
                 if (isHead)
                 {
                     var dropHead = new MenuItem();

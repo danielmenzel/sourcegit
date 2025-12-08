@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:SourceGit.Models"
+             xmlns:vm="using:SourceGit.ViewModels"
+             xmlns:c="using:SourceGit.Converters"
+             xmlns:v="using:SourceGit.Views"
+             x:Class="SourceGit.Views.CreateFixupCommit"
+             x:DataType="vm:CreateFixupCommit">
+  <StackPanel Orientation="Vertical" Margin="8,0">
+    <TextBlock FontSize="18"
+               Classes="bold"
+               Text="{DynamicResource Text.CreateFixupCommit}"/>
+
+    <Grid Margin="0,16,0,0" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="120,*">
+      <!-- Target Commit -->
+      <TextBlock Grid.Row="0" Grid.Column="0"
+                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                 Margin="0,0,8,0"
+                 Text="{DynamicResource Text.CreateFixupCommit.Target}"/>
+      <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*">
+        <TextBlock Grid.Column="0"
+                   Text="{Binding Target.SHA, Converter={x:Static c:StringConverters.ToShortSHA}}"
+                   Foreground="{DynamicResource Brush.Accent}"
+                   Margin="0,0,8,0"/>
+        <TextBlock Grid.Column="1"
+                   Text="{Binding Target.Subject}"
+                   TextTrimming="CharacterEllipsis"/>
+      </Grid>
+
+      <!-- Commit Type -->
+      <TextBlock Grid.Row="1" Grid.Column="0"
+                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                 Margin="0,8,8,0"
+                 Text="{DynamicResource Text.CreateFixupCommit.Type}"/>
+      <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Vertical" Margin="0,8,0,0">
+        <RadioButton Content="{DynamicResource Text.CreateFixupCommit.Type.Fixup}"
+                     ToolTip.Tip="--fixup"
+                     IsChecked="{Binding !IsSquash, Mode=TwoWay}"/>
+        <RadioButton Content="{DynamicResource Text.CreateFixupCommit.Type.Squash}"
+                     ToolTip.Tip="--squash"
+                     Margin="0,4,0,0"
+                     IsChecked="{Binding IsSquash, Mode=TwoWay}"/>
+      </StackPanel>
+
+      <!-- Auto Stage -->
+      <TextBlock Grid.Row="2" Grid.Column="0"
+                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                 Margin="0,8,8,0"
+                 Text="{DynamicResource Text.CreateFixupCommit.AutoStage}"/>
+      <CheckBox Grid.Row="2" Grid.Column="1"
+                Margin="0,8,0,0"
+                Content="{DynamicResource Text.CreateFixupCommit.AutoStage.Desc}"
+                IsChecked="{Binding AutoStage, Mode=TwoWay}"/>
+    </Grid>
+  </StackPanel>
+</UserControl>

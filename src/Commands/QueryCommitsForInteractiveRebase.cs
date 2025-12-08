@@ -71,6 +71,13 @@ namespace SourceGit.Commands
                             end = rs.StdOut.Length - 2;
                         }
 
+                        // Extract subject from message (first line)
+                        var firstLineEnd = current.Message.IndexOf('\n');
+                        if (firstLineEnd > 0)
+                            current.Commit.Subject = current.Message.Substring(0, firstLineEnd).Trim();
+                        else
+                            current.Commit.Subject = current.Message.Trim();
+
                         nextPartIdx = -1;
                         break;
                 }

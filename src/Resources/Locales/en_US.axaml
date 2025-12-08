@@ -138,6 +138,7 @@
   <x:String x:Key="Text.CommitCM.CopyCommitter" xml:space="preserve">Committer</x:String>
   <x:String x:Key="Text.CommitCM.CopySHA" xml:space="preserve">SHA</x:String>
   <x:String x:Key="Text.CommitCM.CopySubject" xml:space="preserve">Subject</x:String>
+  <x:String x:Key="Text.CommitCM.CreateFixupCommit" xml:space="preserve">Create Fixup/Squash Commit...</x:String>
   <x:String x:Key="Text.CommitCM.CustomAction" xml:space="preserve">Custom Action</x:String>
   <x:String x:Key="Text.CommitCM.Drop" xml:space="preserve">Drop Commit</x:String>
   <x:String x:Key="Text.CommitCM.InteractiveRebase" xml:space="preserve">Interactive Rebase</x:String>
@@ -293,6 +294,13 @@
   <x:String x:Key="Text.CreateBranch.Name.Placeholder" xml:space="preserve">Enter branch name.</x:String>
   <x:String x:Key="Text.CreateBranch.Title" xml:space="preserve">Create Local Branch</x:String>
   <x:String x:Key="Text.CreateBranch.OverwriteExisting" xml:space="preserve">Overwrite existing branch</x:String>
+  <x:String x:Key="Text.CreateFixupCommit" xml:space="preserve">Create Fixup/Squash Commit</x:String>
+  <x:String x:Key="Text.CreateFixupCommit.AutoStage" xml:space="preserve">Stage Changes:</x:String>
+  <x:String x:Key="Text.CreateFixupCommit.AutoStage.Desc" xml:space="preserve">Automatically stage all changes before committing</x:String>
+  <x:String x:Key="Text.CreateFixupCommit.Target" xml:space="preserve">Target Commit:</x:String>
+  <x:String x:Key="Text.CreateFixupCommit.Type" xml:space="preserve">Commit Type:</x:String>
+  <x:String x:Key="Text.CreateFixupCommit.Type.Fixup" xml:space="preserve">Fixup (discard this commit's log message)</x:String>
+  <x:String x:Key="Text.CreateFixupCommit.Type.Squash" xml:space="preserve">Squash (combine this commit's log message)</x:String>
   <x:String x:Key="Text.CreateTag" xml:space="preserve">Create Tag...</x:String>
   <x:String x:Key="Text.CreateTag.BasedOn" xml:space="preserve">New Tag At:</x:String>
   <x:String x:Key="Text.CreateTag.GPGSign" xml:space="preserve">GPG signing</x:String>
@@ -516,6 +524,7 @@
   <x:String x:Key="Text.InProgress.Revert" xml:space="preserve">Revert in progress.</x:String>
   <x:String x:Key="Text.InProgress.Revert.Head" xml:space="preserve">Reverting commit</x:String>
   <x:String x:Key="Text.InteractiveRebase" xml:space="preserve">Interactive Rebase</x:String>
+  <x:String x:Key="Text.InteractiveRebase.AutoDetectFixupCommits" xml:space="preserve">Auto-detect fixup/squash commits</x:String>
   <x:String x:Key="Text.InteractiveRebase.AutoStash" xml:space="preserve">Stash &amp; reapply local changes</x:String>
   <x:String x:Key="Text.InteractiveRebase.On" xml:space="preserve">On:</x:String>
   <x:String x:Key="Text.InteractiveRebase.ReorderTip" xml:space="preserve">Drag-drop to reorder commits</x:String>
