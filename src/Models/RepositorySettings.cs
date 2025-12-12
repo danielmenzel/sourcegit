@@ -116,6 +116,11 @@ namespace SourceGit.Models
             }
         }
 
+        public AvaloniaList<BuildServerIntegration> BuildServerIntegrations
+        {
+            get;
+            set;
+        } = [];
         public CustomAction AddNewCustomAction()
         {
             var act = new CustomAction() { Name = "Unnamed Action" };
