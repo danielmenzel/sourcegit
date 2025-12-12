@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -27,6 +28,7 @@ namespace SourceGit.Models
         public bool IsMerged { get; set; } = false;
         public int Color { get; set; } = 0;
         public double LeftMargin { get; set; } = 0;
+        public CommitBuildInfo? BuildInfo { get; set; } = null;
 
         public bool IsHighlightedInGraph
         {

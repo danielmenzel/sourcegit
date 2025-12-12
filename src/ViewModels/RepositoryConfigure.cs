@@ -129,6 +129,17 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _selectedIssueTracker, value);
         }
 
+        public List<string> BuildServerTypes
+        {
+            get;
+        } = new() { "Jenkins" };
+
+        public Models.BuildServerIntegration BuildServer
+        {
+            get => _buildServer;
+            set => SetProperty(ref _buildServer, value);
+        }
+
         public List<string> AvailableOpenAIServices
         {
             get;
@@ -193,6 +204,31 @@ namespace SourceGit.ViewModels
                     URLTemplate = rule.URLTemplate,
                 });
             }
+
+            if (_repo.BuildServer != null)
+            {
+                _buildServer = new Models.BuildServerIntegration()
+                {
+                    IsShared = _repo.BuildServer.IsShared,
+                    Type = _repo.BuildServer.Type,
+                    ServerUrl = _repo.BuildServer.ServerUrl,
+                    ProjectName = _repo.BuildServer.ProjectName,
+                    EnableQueryBuildStatus = _repo.BuildServer.EnableQueryBuildStatus,
+                    CredentialUsername = TryLoadCredUser(_repo.BuildServer, _repo.FullPath),
+                    CredentialToken = string.Empty,
+                };
+            }
+        }
+
+        private static string TryLoadCredUser(Models.BuildServerIntegration server, string repoPath)
+        {
+            try
+            {
+                if (Utils.CredentialStore.TryGet(repoPath, server.Type, server.ServerUrl, out var user, out _))
+                    return user;
+            }
+            catch { }
+            return string.Empty;
         }
 
         public void ClearHttpProxy()
@@ -270,6 +306,25 @@ namespace SourceGit.ViewModels
                 _repo.Settings.MoveCustomActionDown(_selectedCustomAction);
         }
 
+        public void SetupBuildServer()
+        {
+            if (_buildServer == null)
+            {
+                BuildServer = new Models.BuildServerIntegration()
+                {
+                    IsShared = false,
+                    Type = "Jenkins",
+                    ServerUrl = string.Empty,
+                    ProjectName = string.Empty,
+                };
+            }
+        }
+
+        public void ClearBuildServer()
+        {
+            BuildServer = null;
+        }
+
         public async Task SaveAsync()
         {
             _repo.Settings.Save();
@@ -283,6 +338,7 @@ namespace SourceGit.ViewModels
             await SetIfChangedAsync("fetch.prune", EnablePruneOnFetch ? "true" : "false", "false");
 
             await ApplyIssueTrackerChangesAsync();
+            await ApplyBuildServerChangesAsync();
         }
 
         private async Task SetIfChangedAsync(string key, string value, string defValue)
@@ -349,9 +405,44 @@ namespace SourceGit.ViewModels
 
         private readonly Repository _repo;
         private readonly Dictionary<string, string> _cached;
+        private async Task ApplyBuildServerChangesAsync()
+        {
+            var oldServer = _repo.BuildServer;
+            var newServer = _buildServer;
+
+            // Both null - no change
+            if (oldServer == null && newServer == null)
+                return;
+
+            // Remove old server if it existed
+            if (oldServer != null)
+            {
+                await new Commands.BuildServer(_repo.FullPath, oldServer.IsShared).RemoveAsync(oldServer.Type);
+            }
+
+            // Add new server if configured
+            if (newServer != null && !string.IsNullOrWhiteSpace(newServer.ServerUrl))
+            {
+                await new Commands.BuildServer(_repo.FullPath, newServer.IsShared).AddAsync(newServer, newServer.Type);
+
+                // Save credentials if provided
+                if (!string.IsNullOrWhiteSpace(newServer.CredentialUsername) || !string.IsNullOrWhiteSpace(newServer.CredentialToken))
+                {
+                    Utils.CredentialStore.Set(_repo.FullPath, newServer.Type, newServer.ServerUrl, newServer.CredentialUsername ?? string.Empty, newServer.CredentialToken ?? string.Empty);
+                }
+
+                _repo.BuildServer = newServer;
+            }
+            else
+            {
+                _repo.BuildServer = null;
+            }
+        }
+
         private string _httpProxy;
         private Models.CommitTemplate _selectedCommitTemplate = null;
         private Models.IssueTracker _selectedIssueTracker = null;
+        private Models.BuildServerIntegration _buildServer = null;
         private Models.CustomAction _selectedCustomAction = null;
     }
 }

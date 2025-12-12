@@ -122,6 +122,12 @@ namespace SourceGit.Models
             }
         }
 
+        public AvaloniaList<BuildServerIntegration> BuildServerIntegrations
+        {
+            get;
+            set;
+        } = [];
+
         public void PushCommitMessage(string message)
         {
             message = message.Trim().ReplaceLineEndings("\n");

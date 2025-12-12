@@ -175,7 +175,28 @@
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
 
-          <DataGridTemplateColumn MinWidth="100" IsReadOnly="True" IsVisible="{Binding IsSHAColumnVisible, Mode=OneWay}">
+          <DataGridTemplateColumn MinWidth="100" CanUserResize="False" IsReadOnly="True" IsVisible="{Binding IsSHAColumnVisible, Mode=OneWay}">
+          <DataGridTemplateColumn MinWidth="40" CanUserResize="True" IsReadOnly="True">
+            <DataGridTemplateColumn.Header>
+              <TextBlock Classes="table_header" Text="{DynamicResource Text.Histories.Header.BuildStatus}" HorizontalAlignment="Center"/>
+            </DataGridTemplateColumn.Header>
+
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate DataType="m:Commit">
+                <Border Padding="4" Background="Transparent" ClipToBounds="True">
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsVisible="{Binding BuildInfo, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock Text="{Binding BuildInfo.StatusSymbol}"
+                               FontSize="12"
+                               FontWeight="Bold"
+                               Foreground="{Binding BuildInfo.Status, Converter={x:Static c:BuildStatusToBrushConverter.Default}}"
+                               VerticalAlignment="Center"
+                               ToolTip.Tip="{Binding BuildInfo.Description}"/>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+
             <DataGridTemplateColumn.Header>
               <TextBlock Classes="table_header" Text="{DynamicResource Text.Histories.Header.SHA}" HorizontalAlignment="Center"/>
             </DataGridTemplateColumn.Header>

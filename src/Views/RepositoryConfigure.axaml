@@ -278,7 +278,7 @@
           <TextBlock Classes="tab_header" Text="{DynamicResource Text.Configure.IssueTracker}"/>
         </TabItem.Header>
 
-        <Grid ColumnDefinitions="200,*" Height="250" Margin="0,8,0,16">
+        <Grid ColumnDefinitions="200,*" MinHeight="360" Margin="0,8,0,16">
           <Border Grid.Column="0"
                   BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}"
                   Background="{DynamicResource Brush.Contents}">
@@ -376,6 +376,85 @@
               </DataTemplate>
             </ContentControl.DataTemplates>
           </ContentControl>
+        </Grid>
+      </TabItem>
+
+      <TabItem>
+        <TabItem.Header>
+          <TextBlock Classes="tab_header" Text="{DynamicResource Text.Configure.BuildServer}"/>
+        </TabItem.Header>
+
+        <Grid Margin="16,4,16,8" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+          <TextBlock Grid.Row="0" Grid.Column="0"
+                     HorizontalAlignment="Right" VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="{DynamicResource Text.Configure.BuildServer.Type}"/>
+          <ComboBox Grid.Row="0" Grid.Column="1"
+                    Height="28" Padding="8,0"
+                    VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                    ItemsSource="{Binding BuildServerTypes}"
+                    SelectedItem="{Binding BuildServer.Type, Mode=TwoWay}"
+                    IsEnabled="{Binding BuildServer, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+          <TextBlock Grid.Row="1" Grid.Column="0"
+                     HorizontalAlignment="Right" VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="{DynamicResource Text.Configure.BuildServer.ServerUrl}"/>
+          <TextBox Grid.Row="1" Grid.Column="1"
+                   Height="28" Margin="0,4,0,0"
+                   CornerRadius="3"
+                   Text="{Binding BuildServer.ServerUrl, Mode=TwoWay}"
+                   IsEnabled="{Binding BuildServer, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+          <TextBlock Grid.Row="2" Grid.Column="0"
+                     HorizontalAlignment="Right" VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="{DynamicResource Text.Configure.BuildServer.ProjectName}"/>
+          <TextBox Grid.Row="2" Grid.Column="1"
+                   Height="28" Margin="0,4,0,0"
+                   CornerRadius="3"
+                   Text="{Binding BuildServer.ProjectName, Mode=TwoWay}"
+                   IsEnabled="{Binding BuildServer, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+          <CheckBox Grid.Row="3" Grid.Column="1"
+                    Margin="0,8,0,0"
+                    Content="{DynamicResource Text.Configure.BuildServer.EnableQueryBuildStatus}"
+                    IsChecked="{Binding BuildServer.EnableQueryBuildStatus, Mode=TwoWay}"
+                    IsEnabled="{Binding BuildServer, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+          <TextBlock Grid.Row="4" Grid.Column="0"
+                     HorizontalAlignment="Right" VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="{DynamicResource Text.Configure.BuildServer.Username}"/>
+          <TextBox Grid.Row="4" Grid.Column="1"
+                   Height="28" Margin="0,4,0,0"
+                   CornerRadius="3"
+                   TextWrapping="NoWrap"
+                   Text="{Binding BuildServer.CredentialUsername, Mode=TwoWay}"
+                   IsEnabled="{Binding BuildServer, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+          <TextBlock Grid.Row="5" Grid.Column="0"
+                     HorizontalAlignment="Right" VerticalAlignment="Center"
+                     Margin="0,0,8,0"
+                     Text="{DynamicResource Text.Configure.BuildServer.Token}"/>
+          <TextBox Grid.Row="5" Grid.Column="1"
+                   Height="28" Margin="0,4,0,0"
+                   CornerRadius="3"
+                   PasswordChar="*"
+                   TextWrapping="NoWrap"
+                   Text="{Binding BuildServer.CredentialToken, Mode=TwoWay}"
+                   IsEnabled="{Binding BuildServer, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+          <CheckBox Grid.Row="6" Grid.Column="1"
+                    Margin="0,8,0,0"
+                    Content="{DynamicResource Text.Configure.BuildServer.Share}"
+                    IsChecked="{Binding BuildServer.IsShared, Mode=TwoWay}"
+                    IsEnabled="{Binding BuildServer, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+          <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal" Margin="0,12,0,0">
+            <Button Classes="flat" Content="Setup" Command="{Binding SetupBuildServer}" IsVisible="{Binding BuildServer, Converter={x:Static ObjectConverters.IsNull}}"/>
+            <Button Classes="flat" Content="Clear" Command="{Binding ClearBuildServer}" IsVisible="{Binding BuildServer, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+          </StackPanel>
         </Grid>
       </TabItem>
 

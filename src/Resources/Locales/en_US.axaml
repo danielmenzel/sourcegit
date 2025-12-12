@@ -270,6 +270,15 @@
   <x:String x:Key="Text.Configure.IssueTracker.Share" xml:space="preserve">Share this rule in .issuetracker file</x:String>
   <x:String x:Key="Text.Configure.IssueTracker.URLTemplate" xml:space="preserve">Result URL:</x:String>
   <x:String x:Key="Text.Configure.IssueTracker.URLTemplate.Tip" xml:space="preserve">Please use $1, $2 to access regex groups values.</x:String>
+  <x:String x:Key="Text.Configure.BuildServer" xml:space="preserve">BUILD SERVER</x:String>
+  <x:String x:Key="Text.Configure.BuildServer.NewRule" xml:space="preserve">New Build Server</x:String>
+  <x:String x:Key="Text.Configure.BuildServer.Type" xml:space="preserve">Type:</x:String>
+  <x:String x:Key="Text.Configure.BuildServer.ServerUrl" xml:space="preserve">Server URL:</x:String>
+  <x:String x:Key="Text.Configure.BuildServer.ProjectName" xml:space="preserve">Project Name:</x:String>
+  <x:String x:Key="Text.Configure.BuildServer.EnableQueryBuildStatus" xml:space="preserve">Query build status for commits in history</x:String>
+  <x:String x:Key="Text.Configure.BuildServer.Username" xml:space="preserve">Username (for API token):</x:String>
+  <x:String x:Key="Text.Configure.BuildServer.Token" xml:space="preserve">API Token / Password:</x:String>
+  <x:String x:Key="Text.Configure.BuildServer.Share" xml:space="preserve">Share this configuration in .buildserver file</x:String>
   <x:String x:Key="Text.Configure.OpenAI" xml:space="preserve">AI</x:String>
   <x:String x:Key="Text.Configure.OpenAI.Preferred" xml:space="preserve">Preferred Service:</x:String>
   <x:String x:Key="Text.Configure.OpenAI.Preferred.Tip" xml:space="preserve">If the 'Preferred Service' is set, SourceGit will only use it in this repository. Otherwise, if there is more than one service available, a context menu to choose one of them will be shown.</x:String>
@@ -517,6 +526,7 @@
   <x:String x:Key="Text.Histories.Header.Author" xml:space="preserve">AUTHOR</x:String>
   <x:String x:Key="Text.Histories.Header.AuthorTime" xml:space="preserve">AUTHOR TIME</x:String>
   <x:String x:Key="Text.Histories.Header.CommitTime" xml:space="preserve">COMMIT TIME</x:String>
+  <x:String x:Key="Text.Histories.Header.BuildStatus" xml:space="preserve">BUILD</x:String>
   <x:String x:Key="Text.Histories.Header.GraphAndSubject" xml:space="preserve">GRAPH &amp; SUBJECT</x:String>
   <x:String x:Key="Text.Histories.Header.SHA" xml:space="preserve">SHA</x:String>
   <x:String x:Key="Text.Histories.HighlightsInGraph" xml:space="preserve">HIGHLIGHTS IN GRAPH</x:String>

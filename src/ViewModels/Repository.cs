@@ -423,6 +423,12 @@ namespace SourceGit.ViewModels
             get;
         } = [];
 
+        public Models.BuildServerIntegration BuildServer
+        {
+            get => _buildServer;
+            set => SetProperty(ref _buildServer, value);
+        }
+
         public AvaloniaList<CommandLog> Logs
         {
             get;
@@ -650,6 +656,14 @@ namespace SourceGit.ViewModels
                 {
                     IssueTrackers.Clear();
                     IssueTrackers.AddRange(issuetrackers);
+                });
+
+                var buildservers = new List<Models.BuildServerIntegration>();
+                await new Commands.BuildServer(FullPath, true).ReadAllAsync(buildservers, true).ConfigureAwait(false);
+                await new Commands.BuildServer(FullPath, false).ReadAllAsync(buildservers, false).ConfigureAwait(false);
+                Dispatcher.UIThread.Post(() =>
+                {
+                    BuildServer = buildservers.Count > 0 ? buildservers[0] : null;
                 });
 
                 var config = await new Commands.Config(FullPath).ReadAllAsync().ConfigureAwait(false);
@@ -1950,6 +1964,8 @@ namespace SourceGit.ViewModels
 
         private Models.BisectState _bisectState = Models.BisectState.None;
         private bool _isBisectCommandRunning = false;
+
+        private Models.BuildServerIntegration _buildServer = null;
 
         private CancellationTokenSource _cancellationRefreshBranches = null;
         private CancellationTokenSource _cancellationRefreshTags = null;

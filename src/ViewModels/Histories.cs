@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Avalonia.Collections;
@@ -77,7 +78,20 @@ namespace SourceGit.ViewModels
             {
                 GenerateGraph(value, true);
                 if (SetProperty(ref _commits, value))
+                {
                     PostCommitsChanged();
+
+                    // Start or update build server polling
+                    if (value.Count > 0)
+                    {
+                        InitializeBuildServerPolling();
+                        _buildServerPoller?.UpdateCommits(value);
+                    }
+                    else
+                    {
+                        _buildServerPoller?.StopPolling();
+                    }
+                }
             }
         }
 
@@ -193,6 +207,7 @@ namespace SourceGit.ViewModels
         {
             _repo = repo;
             _commitDetailSharedData = new CommitDetailSharedData();
+            _buildServerPoller = null;
         }
 
         public void NotifyCurrentBranchChanged()
@@ -527,6 +542,7 @@ namespace SourceGit.ViewModels
 
         private Repository _repo = null;
         private CommitDetailSharedData _commitDetailSharedData = null;
+        private BuildServerPoller _buildServerPoller = null;
         private bool _isLoading = true;
         private List<Models.Commit> _commits = [];
         private Models.CommitGraph _graph = null;
@@ -540,5 +556,46 @@ namespace SourceGit.ViewModels
         private GridLength _topArea = new(1, GridUnitType.Star);
         private GridLength _bottomArea = new(1, GridUnitType.Star);
         private bool _isCollapseDetails = false;
+
+        private void InitializeBuildServerPolling()
+        {
+            if (_buildServerPoller != null)
+                return;
+
+            // Create adapter factory for Jenkins
+            Models.IBuildServerAdapter CreateAdapter()
+            {
+                var buildServer = _repo?.BuildServer;
+                if (buildServer == null)
+                    return null;
+
+                // Check if build server is enabled and properly configured
+                if (buildServer.Type != "Jenkins" ||
+                    !buildServer.EnableQueryBuildStatus ||
+                    string.IsNullOrEmpty(buildServer.ServerUrl) ||
+                    string.IsNullOrEmpty(buildServer.ProjectName))
+                    return null;
+
+                var adapter = new Models.JenkinsBuildServerAdapter();
+                adapter.Initialize(buildServer, _repo.FullPath);
+                return adapter;
+            }
+
+            _buildServerPoller = new BuildServerPoller(
+                _repo.FullPath,
+                CreateAdapter,
+                (sha, buildInfo) =>
+                {
+                    // Refresh the commits collection to update UI bindings
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (_commits != null && _commits.Count > 0)
+                            Commits = new List<Models.Commit>(_commits);
+                    });
+                });
+
+            if (_commits.Count > 0)
+                _buildServerPoller.StartPolling(_commits);
+        }
     }
 }
