@@ -1985,5 +1985,14 @@ namespace SourceGit.Views
             else
                 await this.ShowDialogAsync(new ViewModels.InteractiveRebase(repo, on, prefill));
         }
+
+        private void OnBuildStatusClicked(object sender, PointerPressedEventArgs e)
+        {
+            if (sender is Border { DataContext: Models.CommitBuildInfo buildInfo } && !string.IsNullOrEmpty(buildInfo.Url))
+            {
+                Native.OS.OpenBrowser(buildInfo.Url);
+                e.Handled = true;
+            }
+        }
     }
 }

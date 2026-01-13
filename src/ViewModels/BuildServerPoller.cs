@@ -10,11 +10,14 @@ namespace SourceGit.ViewModels
     {
         private readonly string _repositoryPath;
         private readonly Func<Models.IBuildServerAdapter> _adapterFactory;
-        private readonly Action<string, Models.CommitBuildInfo> _onStatusChanged;
+        private readonly Action _onStatusChanged;
         private Timer _pollingTimer;
-        private bool _isPolling;
+        private volatile bool _isPolling;
+        private volatile bool _isPollInProgress;
         private DateTime _lastPollTime;
         private bool _hasRunningBuilds;
+        private List<Models.Commit> _currentCommits;
+        private readonly object _pollLock = new();
 
         private const int ShortPollInterval = 10000;  // 10 seconds
         private const int LongPollInterval = 120000;  // 120 seconds
@@ -22,7 +25,7 @@ namespace SourceGit.ViewModels
         public BuildServerPoller(
             string repositoryPath,
             Func<Models.IBuildServerAdapter> adapterFactory,
-            Action<string, Models.CommitBuildInfo> onStatusChanged)
+            Action onStatusChanged)
         {
             _repositoryPath = repositoryPath;
             _adapterFactory = adapterFactory;
@@ -37,9 +40,10 @@ namespace SourceGit.ViewModels
             _isPolling = true;
             _lastPollTime = DateTime.MinValue;
             _hasRunningBuilds = true;
+            _currentCommits = commits;
 
             // Start immediately and then schedule recurring polls
-            Task.Run(() => PollBuildStatus(commits));
+            Task.Run(PollBuildStatusAsync);
         }
 
         public void StopPolling()
@@ -54,8 +58,8 @@ namespace SourceGit.ViewModels
             if (!_isPolling)
                 return;
 
-            // Trigger an immediate poll with new commits
-            Task.Run(() => PollBuildStatus(commits));
+            _currentCommits = commits;
+            // Don't trigger immediate poll - let the timer handle it
         }
 
         public void Dispose()
@@ -63,58 +67,84 @@ namespace SourceGit.ViewModels
             StopPolling();
         }
 
-        private async Task PollBuildStatus(List<Models.Commit> commits)
+        private async Task PollBuildStatusAsync()
         {
-            if (!_isPolling || commits is null || commits.Count == 0)
-                return;
+            // Prevent concurrent polling
+            lock (_pollLock)
+            {
+                if (_isPollInProgress || !_isPolling)
+                    return;
+                _isPollInProgress = true;
+            }
 
             try
             {
+                var commits = _currentCommits;
+                if (commits is null || commits.Count == 0)
+                    return;
+
                 var adapter = _adapterFactory();
                 if (adapter is null)
                     return;
 
-                // Extract commit SHAs
-                var commitShas = commits.Select(c => c.SHA).ToList();
+                // Limit to first 100 commits to avoid overwhelming Jenkins
+                var commitShas = commits.Take(100).Select(c => c.SHA).ToList();
 
                 // Query build status
                 var buildStatuses = await adapter.QueryBuildStatusAsync(commitShas);
 
-                if (buildStatuses is null || buildStatuses.Count == 0)
-                {
-                    _hasRunningBuilds = false;
-                }
-                else
+                if (!_isPolling)
+                    return;
+
+                _hasRunningBuilds = false;
+                var hasUpdates = false;
+
+                if (buildStatuses != null && buildStatuses.Count > 0)
                 {
                     // Update commits with build status
                     foreach (var commit in commits)
                     {
-                        if (buildStatuses.TryGetValue(commit.SHA, out var buildInfo))
+                        if (buildStatuses.TryGetValue(commit.SHA, out var buildInfos))
                         {
-                            commit.BuildInfo = buildInfo;
-                            _onStatusChanged?.Invoke(commit.SHA, buildInfo);
+                            commit.BuildInfos = buildInfos;
+                            hasUpdates = true;
 
                             // Check if any builds are still running
-                            if (buildInfo.Status == Models.BuildStatus.InProgress)
-                                _hasRunningBuilds = true;
+                            foreach (var buildInfo in buildInfos)
+                            {
+                                if (buildInfo.Status == Models.BuildStatus.InProgress)
+                                {
+                                    _hasRunningBuilds = true;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
+
+                // Notify once after all updates are complete
+                if (hasUpdates)
+                    _onStatusChanged?.Invoke();
 
                 _lastPollTime = DateTime.Now;
             }
             catch (Exception ex)
             {
-                App.RaiseException(string.Empty, $"Failed to poll build status: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[BuildServerPoller] Poll failed: {ex.Message}");
             }
             finally
             {
+                lock (_pollLock)
+                {
+                    _isPollInProgress = false;
+                }
+
                 // Schedule next poll based on whether there are running builds
-                ScheduleNextPoll(commits);
+                ScheduleNextPoll();
             }
         }
 
-        private void ScheduleNextPoll(List<Models.Commit> commits)
+        private void ScheduleNextPoll()
         {
             if (!_isPolling)
                 return;
@@ -124,7 +154,7 @@ namespace SourceGit.ViewModels
 
             _pollingTimer?.Dispose();
             _pollingTimer = new Timer(
-                async _ => await PollBuildStatus(commits),
+                _ => Task.Run(PollBuildStatusAsync),
                 null,
                 interval,
                 Timeout.Infinite);

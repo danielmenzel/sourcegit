@@ -48,7 +48,7 @@ namespace SourceGit.ViewModels
 
             if (AutoStage)
             {
-                var succ = await new Commands.Add(_repo.FullPath, true)
+                var succ = await new Commands.Add(_repo.FullPath, ".")
                     .Use(log)
                     .ExecAsync();
 

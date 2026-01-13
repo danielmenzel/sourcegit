@@ -34,25 +34,10 @@ namespace SourceGit.Models
             set => SetProperty(ref _enableQueryBuildStatus, value);
         }
 
-        // Transient credential fields for UI (not persisted to git config)
-        public string CredentialUsername
-        {
-            get => _credentialUsername;
-            set => SetProperty(ref _credentialUsername, value);
-        }
-
-        public string CredentialToken
-        {
-            get => _credentialToken;
-            set => SetProperty(ref _credentialToken, value);
-        }
-
         private bool _isShared;
         private string _type = "Jenkins";
         private string _serverUrl = string.Empty;
         private string _projectName = string.Empty;
         private bool _enableQueryBuildStatus = false;
-        private string _credentialUsername = string.Empty;
-        private string _credentialToken = string.Empty;
     }
 }

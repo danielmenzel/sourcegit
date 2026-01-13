@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 
 using Avalonia.Collections;
@@ -108,9 +107,30 @@ namespace SourceGit.ViewModels
             get => _commits;
             set
             {
+                var oldCommits = _commits;
                 GenerateGraph(value);
                 if (SetProperty(ref _commits, value))
                 {
+                    // Transfer build status from old commits to new commits
+                    if (oldCommits != null && oldCommits.Count > 0 && value.Count > 0)
+                    {
+                        var oldBuildInfos = new Dictionary<string, List<Models.CommitBuildInfo>>();
+                        foreach (var oldCommit in oldCommits)
+                        {
+                            if (oldCommit.BuildInfos != null)
+                                oldBuildInfos[oldCommit.SHA] = oldCommit.BuildInfos;
+                        }
+
+                        if (oldBuildInfos.Count > 0)
+                        {
+                            foreach (var newCommit in value)
+                            {
+                                if (oldBuildInfos.TryGetValue(newCommit.SHA, out var buildInfos))
+                                    newCommit.BuildInfos = buildInfos;
+                            }
+                        }
+                    }
+
                     PostCommitsChanged();
 
                     // Start or update build server polling
@@ -248,6 +268,18 @@ namespace SourceGit.ViewModels
             _commitDetailSharedData = new CommitDetailSharedData();
             _searchCommitContext = new SearchCommitContext(repo.FullPath, this);
             _buildServerPoller = null;
+
+            // Subscribe to repository property changes to detect when BuildServer config loads
+            _repo.PropertyChanged += OnRepositoryPropertyChanged;
+        }
+
+        private void OnRepositoryPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(Repository.BuildServer))
+            {
+                // BuildServer config has been loaded/changed, reinitialize polling
+                ReinitializeBuildServerPolling();
+            }
         }
 
         public bool HasShowFlag(Models.HistoryShowFlags flag)
@@ -614,45 +646,81 @@ namespace SourceGit.ViewModels
         private GridLength _bottomArea = new(1, GridUnitType.Star);
         private bool _isCollapseDetails = false;
 
-        private void InitializeBuildServerPolling()
-    {
-        if (_buildServerPoller != null)
-            return;
-
-        // Create adapter factory for Jenkins
-        Models.IBuildServerAdapter CreateAdapter()
+        private void ReinitializeBuildServerPolling()
         {
-            var buildServer = _repo?.BuildServer;
-            if (buildServer == null)
-                return null;
+            // Stop and dispose the old poller
+            _buildServerPoller?.Dispose();
+            _buildServerPoller = null;
 
-            // Check if build server is enabled and properly configured
-            if (buildServer.Type != "Jenkins" ||
+            // Now reinitialize if we have commits and a valid build server config
+            if (_commits.Count > 0 && _repo?.BuildServer != null)
+            {
+                InitializeBuildServerPolling();
+                _buildServerPoller?.StartPolling(_commits);
+            }
+        }
+
+        private void InitializeBuildServerPolling()
+        {
+            if (_buildServerPoller != null)
+                return;
+
+            // Check if build server is configured before creating the poller
+            var buildServer = _repo?.BuildServer;
+            if (buildServer == null ||
+                buildServer.Type != "Jenkins" ||
                 !buildServer.EnableQueryBuildStatus ||
                 string.IsNullOrEmpty(buildServer.ServerUrl) ||
                 string.IsNullOrEmpty(buildServer.ProjectName))
-                return null;
-
-            var adapter = new Models.JenkinsBuildServerAdapter();
-            adapter.Initialize(buildServer, _repo.FullPath);
-            return adapter;
-        }
-
-        _buildServerPoller = new BuildServerPoller(
-            _repo.FullPath,
-            CreateAdapter,
-            (sha, buildInfo) =>
             {
-                // Refresh the commits collection to update UI bindings
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (_commits != null && _commits.Count > 0)
-                        Commits = new List<Models.Commit>(_commits);
-                });
-            });
+                return;
+            }
 
-        if (_commits.Count > 0)
-            _buildServerPoller.StartPolling(_commits);
-    }
+            // Cache the adapter instance to avoid re-initialization on every poll
+            Models.IBuildServerAdapter cachedAdapter = null;
+
+            // Create adapter factory for Jenkins
+            Models.IBuildServerAdapter CreateAdapter()
+            {
+                if (cachedAdapter != null)
+                    return cachedAdapter;
+
+                var currentBuildServer = _repo?.BuildServer;
+                if (currentBuildServer == null)
+                    return null;
+
+                // Check if build server is enabled and properly configured
+                if (currentBuildServer.Type != "Jenkins" ||
+                    !currentBuildServer.EnableQueryBuildStatus ||
+                    string.IsNullOrEmpty(currentBuildServer.ServerUrl) ||
+                    string.IsNullOrEmpty(currentBuildServer.ProjectName))
+                    return null;
+
+                var adapter = new Models.JenkinsBuildServerAdapter();
+                adapter.Initialize(currentBuildServer, _repo.FullPath);
+                cachedAdapter = adapter;
+                return adapter;
+            }
+
+            _buildServerPoller = new BuildServerPoller(
+                _repo.FullPath,
+                CreateAdapter,
+                () =>
+                {
+                    // Force UI refresh after build statuses have been updated
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (_commits != null && _commits.Count > 0)
+                        {
+                            // Create a new list to force DataGrid to rebind and re-render all rows
+                            var updatedCommits = new List<Models.Commit>(_commits);
+                            SetProperty(ref _commits, updatedCommits, nameof(Commits));
+                        }
+                    });
+                });
+
+            if (_commits.Count > 0)
+                _buildServerPoller.StartPolling(_commits);
+        }
     }
 }

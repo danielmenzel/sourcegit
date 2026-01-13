@@ -214,21 +214,8 @@ namespace SourceGit.ViewModels
                     ServerUrl = _repo.BuildServer.ServerUrl,
                     ProjectName = _repo.BuildServer.ProjectName,
                     EnableQueryBuildStatus = _repo.BuildServer.EnableQueryBuildStatus,
-                    CredentialUsername = TryLoadCredUser(_repo.BuildServer, _repo.FullPath),
-                    CredentialToken = string.Empty,
                 };
             }
-        }
-
-        private static string TryLoadCredUser(Models.BuildServerIntegration server, string repoPath)
-        {
-            try
-            {
-                if (Utils.CredentialStore.TryGet(repoPath, server.Type, server.ServerUrl, out var user, out _))
-                    return user;
-            }
-            catch { }
-            return string.Empty;
         }
 
         public void ClearHttpProxy()
@@ -425,12 +412,7 @@ namespace SourceGit.ViewModels
             {
                 await new Commands.BuildServer(_repo.FullPath, newServer.IsShared).AddAsync(newServer, newServer.Type);
 
-                // Save credentials if provided
-                if (!string.IsNullOrWhiteSpace(newServer.CredentialUsername) || !string.IsNullOrWhiteSpace(newServer.CredentialToken))
-                {
-                    Utils.CredentialStore.Set(_repo.FullPath, newServer.Type, newServer.ServerUrl, newServer.CredentialUsername ?? string.Empty, newServer.CredentialToken ?? string.Empty);
-                }
-
+                // Update repo.BuildServer
                 _repo.BuildServer = newServer;
             }
             else
