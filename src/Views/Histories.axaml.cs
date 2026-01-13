@@ -1756,5 +1756,14 @@ namespace SourceGit.Views
         private bool _isDetailsPanelExpanded = true;
         private bool _resizingAuthorColumn = false;
         private Cursor _resizingCursor = new(StandardCursorType.SizeWestEast);
+
+        private void OnBuildStatusClicked(object sender, PointerPressedEventArgs e)
+        {
+            if (sender is Border { DataContext: Models.CommitBuildInfo buildInfo } && !string.IsNullOrEmpty(buildInfo.Url))
+            {
+                Native.OS.OpenBrowser(buildInfo.Url);
+                e.Handled = true;
+            }
+        }
     }
 }

@@ -176,22 +176,39 @@
           </DataGridTemplateColumn>
 
           <DataGridTemplateColumn MinWidth="100" CanUserResize="False" IsReadOnly="True" IsVisible="{Binding IsSHAColumnVisible, Mode=OneWay}">
-          <DataGridTemplateColumn MinWidth="40" CanUserResize="True" IsReadOnly="True">
+          <DataGridTemplateColumn MinWidth="70" CanUserResize="True" IsReadOnly="True">
+            <DataGridTemplateColumn.Width>
+              <Binding Source="{x:Static vm:Preferences.Instance}"
+                       Path="Layout.BuildStatusColumnWidth"
+                       Mode="TwoWay"/>
+            </DataGridTemplateColumn.Width>
             <DataGridTemplateColumn.Header>
               <TextBlock Classes="table_header" Text="{DynamicResource Text.Histories.Header.BuildStatus}" HorizontalAlignment="Center"/>
             </DataGridTemplateColumn.Header>
 
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate DataType="m:Commit">
-                <Border Padding="4" Background="Transparent" ClipToBounds="True">
-                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsVisible="{Binding BuildInfo, Converter={x:Static ObjectConverters.IsNotNull}}">
-                    <TextBlock Text="{Binding BuildInfo.StatusSymbol}"
-                               FontSize="12"
-                               FontWeight="Bold"
-                               Foreground="{Binding BuildInfo.Status, Converter={x:Static c:BuildStatusToBrushConverter.Default}}"
-                               VerticalAlignment="Center"
-                               ToolTip.Tip="{Binding BuildInfo.Description}"/>
-                  </StackPanel>
+                <Border Padding="4,0" Background="Transparent" ClipToBounds="True">
+                  <ItemsControl ItemsSource="{Binding BuildInfos}"
+                                IsVisible="{Binding BuildInfos, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="2"/>
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="m:CommitBuildInfo">
+                        <Border Background="Transparent" Cursor="Hand" PointerPressed="OnBuildStatusClicked">
+                          <TextBlock Text="{Binding StatusSymbol}"
+                                     FontSize="12"
+                                     FontWeight="Bold"
+                                     Foreground="{Binding Status, Converter={x:Static c:BuildStatusToBrushConverter.Default}}"
+                                     VerticalAlignment="Center"
+                                     ToolTip.Tip="{Binding Description}"/>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
                 </Border>
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>

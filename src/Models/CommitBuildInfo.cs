@@ -5,6 +5,7 @@ namespace SourceGit.Models
         public BuildStatus Status { get; set; } = BuildStatus.Unknown;
         public string Description { get; set; } = string.Empty;
         public string Url { get; set; } = string.Empty;
+        public string JobName { get; set; } = string.Empty;
 
         public string StatusSymbol => Status switch
         {

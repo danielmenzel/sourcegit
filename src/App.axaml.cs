@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -99,6 +100,36 @@ namespace SourceGit
             return Models.ConfirmEmptyCommitResult.Cancel;
         }
 
+        public static async Task<Models.BuildServerCredentials> AskBuildServerCredentialsAsync(string serverName)
+        {
+            if (!Dispatcher.UIThread.CheckAccess())
+                return await Dispatcher.UIThread.InvokeAsync(ShowDialogAsync);
+
+            return await ShowDialogAsync();
+
+            async Task<Models.BuildServerCredentials> ShowDialogAsync()
+            {
+                var desktop = Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+                if (desktop == null)
+                    return null;
+
+                var owner = desktop.Windows.FirstOrDefault(x => x.IsActive) ?? desktop.MainWindow;
+                if (owner == null)
+                    return null;
+
+                var credentials = new Models.BuildServerCredentials { ServerName = serverName };
+                var dialog = new Views.BuildServerCredentials
+                {
+                    DataContext = credentials
+                };
+                dialog.Message.Text = $"The build server '{serverName}' requires authentication.\nPlease enter your credentials:";
+
+                if (await dialog.ShowDialog<bool>(owner))
+                    return credentials;
+
+                return null;
+            }
+        }
         public static void SetLocale(string localeKey)
         {
             if (Current is not App app ||

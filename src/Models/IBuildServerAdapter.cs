@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -18,8 +17,8 @@ namespace SourceGit.Models
 
         /// <summary>
         /// Query build status for a list of commit SHAs
-        /// Returns a dictionary mapping commit SHA to build info
+        /// Returns a dictionary mapping commit SHA to a list of build infos (one per job/project)
         /// </summary>
-        Task<Dictionary<string, CommitBuildInfo>> QueryBuildStatusAsync(List<string> commitShas);
+        Task<Dictionary<string, List<CommitBuildInfo>>> QueryBuildStatusAsync(List<string> commitShas);
     }
 }
