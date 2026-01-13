@@ -12,7 +12,8 @@
     <Product>SourceGit</Product>
     <Description>OpenSource GIT client</Description>
     <Company>sourcegit-scm</Company>
-    <Copyright>Copyright © $([System.DateTime]::Now.Year) sourcegit-scm.</Copyright>
+    <Copyright Condition="'$(Configuration)' == 'Debug'">Copyright © sourcegit-scm.</Copyright>
+    <Copyright Condition="'$(Configuration)' != 'Debug'">Copyright © $([System.DateTime]::Now.Year) sourcegit-scm.</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/sourcegit-scm/sourcegit.git</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sourcegit-scm/sourcegit.git</RepositoryUrl>
@@ -79,5 +80,4 @@
     </ItemGroup>
   </Target>
 </Project>
-
 
