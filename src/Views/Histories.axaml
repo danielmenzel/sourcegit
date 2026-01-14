@@ -136,8 +136,10 @@
                                               InlineCodeBackground="{DynamicResource Brush.InlineCode}"
                                               InlineCodeForeground="{DynamicResource Brush.InlineCodeFG}"
                                               Foreground="{DynamicResource Brush.FG1}"
+                                              BodyForeground="{DynamicResource Brush.FG1}"
                                               LinkForeground="{DynamicResource Brush.Link}"
                                               Subject="{Binding Subject}"
+                                              Body="{Binding Body}"
                                               IssueTrackers="{Binding $parent[v:Histories].IssueTrackers}"
                                               FontWeight="{Binding IsCurrentHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}"
                                               Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}"/>
