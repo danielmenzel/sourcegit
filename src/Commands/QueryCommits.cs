@@ -12,14 +12,16 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
-            Args = $"log --no-show-signature --decorate=full --format=%H%x00%P%x00%D%x00%aN±%aE%x00%at%x00%cN±%cE%x00%ct%x00%s {limits}";
+            // Use %x1e (record separator) between commits, %x00 between fields, and %x1f before body (which may contain newlines)
+            Args = $"log --no-show-signature --decorate=full --format=%H%x00%P%x00%D%x00%aN±%aE%x00%at%x00%cN±%cE%x00%ct%x00%s%x1f%b%x1e {limits}";
             _markMerged = markMerged;
         }
 
         public QueryCommits(string repo, string filter, Models.CommitSearchMethod method, bool onlyCurrentBranch)
         {
             var builder = new StringBuilder();
-            builder.Append("log -1000 --date-order --no-show-signature --decorate=full --format=%H%x00%P%x00%D%x00%aN±%aE%x00%at%x00%cN±%cE%x00%ct%x00%s ");
+            // Use %x1e (record separator) between commits, %x00 between fields, and %x1f before body (which may contain newlines)
+            builder.Append("log -1000 --date-order --no-show-signature --decorate=full --format=%H%x00%P%x00%D%x00%aN±%aE%x00%at%x00%cN±%cE%x00%ct%x00%s%x1f%b%x1e ");
 
             if (!onlyCurrentBranch)
                 builder.Append("--branches --remotes ");
@@ -59,12 +61,27 @@ namespace SourceGit.Commands
                 proc.StartInfo = CreateGitStartInfo(true);
                 proc.Start();
 
+                // Read entire output and split by record separator (0x1e)
+                var output = await proc.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+                await proc.WaitForExitAsync().ConfigureAwait(false);
+
                 var findHead = false;
-                while (await proc.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { } line)
+                var records = output.Split('\x1e', StringSplitOptions.RemoveEmptyEntries);
+
+                foreach (var record in records)
                 {
-                    var parts = line.Split('\0');
+                    var trimmedRecord = record.Trim();
+                    if (string.IsNullOrEmpty(trimmedRecord))
+                        continue;
+
+                    var parts = trimmedRecord.Split('\0');
                     if (parts.Length != 8)
                         continue;
+
+                    // The 8th part contains subject + unit separator + body
+                    var subjectAndBody = parts[7].Split('\x1f', 2);
+                    var subject = subjectAndBody[0];
+                    var body = subjectAndBody.Length > 1 ? ExtractFirstLineOfBody(subjectAndBody[1]) : string.Empty;
 
                     var commit = new Models.Commit() { SHA = parts[0] };
                     commit.ParseParents(parts[1]);
@@ -73,14 +90,13 @@ namespace SourceGit.Commands
                     commit.AuthorTime = ulong.Parse(parts[4]);
                     commit.Committer = Models.User.FindOrAdd(parts[5]);
                     commit.CommitterTime = ulong.Parse(parts[6]);
-                    commit.Subject = parts[7];
+                    commit.Subject = subject;
+                    commit.Body = body;
                     commits.Add(commit);
 
                     if (!findHead && commit.IsMerged)
                         findHead = true;
                 }
-
-                await proc.WaitForExitAsync().ConfigureAwait(false);
 
                 if (_markMerged && !findHead && commits.Count > 0)
                 {
@@ -104,6 +120,23 @@ namespace SourceGit.Commands
             }
 
             return commits;
+        }
+
+        private static string ExtractFirstLineOfBody(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return string.Empty;
+
+            // Find the first non-empty line in the body
+            var lines = body.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                var trimmed = line.Trim();
+                if (!string.IsNullOrEmpty(trimmed))
+                    return trimmed;
+            }
+
+            return string.Empty;
         }
 
         private bool _markMerged = false;

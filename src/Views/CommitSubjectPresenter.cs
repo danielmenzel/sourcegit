@@ -107,6 +107,24 @@ namespace SourceGit.Views
             set => SetAndRaise(SubjectProperty, ref _subject, value);
         }
 
+        public static readonly StyledProperty<string> BodyProperty =
+            AvaloniaProperty.Register<CommitSubjectPresenter, string>(nameof(Body));
+
+        public string Body
+        {
+            get => GetValue(BodyProperty);
+            set => SetValue(BodyProperty, value);
+        }
+
+        public static readonly StyledProperty<IBrush> BodyForegroundProperty =
+            AvaloniaProperty.Register<CommitSubjectPresenter, IBrush>(nameof(BodyForeground), Brushes.Gray);
+
+        public IBrush BodyForeground
+        {
+            get => GetValue(BodyForegroundProperty);
+            set => SetValue(BodyForegroundProperty, value);
+        }
+
         public static readonly DirectProperty<CommitSubjectPresenter, AvaloniaList<Models.IssueTracker>> IssueTrackersProperty =
             AvaloniaProperty.RegisterDirect<CommitSubjectPresenter, AvaloniaList<Models.IssueTracker>>(
                 nameof(IssueTrackers),
@@ -170,7 +188,7 @@ namespace SourceGit.Views
         {
             base.OnPropertyChanged(change);
 
-            if (change.Property == SubjectProperty)
+            if (change.Property == SubjectProperty || change.Property == BodyProperty)
             {
                 _needRebuildInlines = true;
                 GenerateInlineElements();
@@ -190,6 +208,7 @@ namespace SourceGit.Views
                 change.Property == FontSizeProperty ||
                 change.Property == FontWeightProperty ||
                 change.Property == ForegroundProperty ||
+                change.Property == BodyForegroundProperty ||
                 change.Property == LinkForegroundProperty)
             {
                 _needRebuildInlines = true;
@@ -373,7 +392,7 @@ namespace SourceGit.Views
                         subject.Substring(elem.Start + 1, elem.Length - 2),
                         CultureInfo.CurrentCulture,
                         FlowDirection.LeftToRight,
-                        codeTypeface,
+                    codeTypeface,
                         fontSize - 0.5,
                         inlineCodeForeground);
                     _inlines.Add(new Inline(x, link, elem));
@@ -394,6 +413,41 @@ namespace SourceGit.Views
                         foreground);
 
                 _inlines.Add(new Inline(x, normal, null));
+                x += normal.WidthIncludingTrailingWhitespace;
+            }
+
+            // Append body text in a lighter color if present
+            var body = Body;
+            if (!string.IsNullOrEmpty(body))
+            {
+                // Apply 50% opacity to body foreground to make it appear as light gray
+                var bodyForeground = BodyForeground;
+                if (bodyForeground is ISolidColorBrush solidBrush)
+                {
+                    var color = solidBrush.Color;
+                    bodyForeground = new SolidColorBrush(Color.FromArgb((byte)(color.A * 0.5), color.R, color.G, color.B));
+                }
+
+                // Add a separator (em dash) between subject and body
+                var separator = new FormattedText(
+                    " — ",
+                    CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    typeface,
+                    fontSize,
+                    bodyForeground);
+                _inlines.Add(new Inline(x, separator, null));
+                x += separator.WidthIncludingTrailingWhitespace;
+
+                // Add the body text
+                var bodyText = new FormattedText(
+                    body,
+                    CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight,
+                    typeface,
+                    fontSize,
+                    bodyForeground);
+                _inlines.Add(new Inline(x, bodyText, null));
             }
         }
 
