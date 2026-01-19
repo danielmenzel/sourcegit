@@ -108,6 +108,10 @@ namespace SourceGit.ViewModels
             set
             {
                 var oldCommits = _commits;
+
+                // Ignore selection changes while we're updating the commits list
+                _ignoreSelectionChange = true;
+
                 GenerateGraph(value);
                 if (SetProperty(ref _commits, value))
                 {
@@ -144,6 +148,8 @@ namespace SourceGit.ViewModels
                         _buildServerPoller?.StopPolling();
                     }
                 }
+
+                _ignoreSelectionChange = false;
             }
         }
 
@@ -712,9 +718,32 @@ namespace SourceGit.ViewModels
                     {
                         if (_commits != null && _commits.Count > 0)
                         {
+                            // Remember the currently selected commit
+                            var lastSelected = _selectedCommit;
+
+                            // Ignore selection changes while updating the commits list
+                            _ignoreSelectionChange = true;
+
                             // Create a new list to force DataGrid to rebind and re-render all rows
                             var updatedCommits = new List<Models.Commit>(_commits);
                             SetProperty(ref _commits, updatedCommits, nameof(Commits));
+
+                            // Restore selection if there was one
+                            if (lastSelected != null)
+                            {
+                                var foundCommit = updatedCommits.Find(x => x.SHA == lastSelected.SHA);
+                                if (foundCommit != null)
+                                {
+                                    _selectedCommit = foundCommit;
+                                    OnPropertyChanged(nameof(SelectedCommit));
+
+                                    // Update detail context with the found commit
+                                    if (_detailContext is CommitDetail detail)
+                                        detail.Commit = foundCommit;
+                                }
+                            }
+
+                            _ignoreSelectionChange = false;
                         }
                     });
                 });
