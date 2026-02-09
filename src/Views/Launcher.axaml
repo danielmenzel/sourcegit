@@ -118,7 +118,7 @@
     </Grid>
 
     <!-- Page -->
-    <ContentControl Grid.Row="1" Content="{Binding ActivePage}" Background="{DynamicResource Brush.Window}">
+    <ContentControl Grid.Row="1" Content="{Binding ActivePage}">
       <ContentControl.DataTemplates>
         <DataTemplate DataType="vm:LauncherPage">
           <v:LauncherPage/>
