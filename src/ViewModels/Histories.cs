@@ -77,6 +77,10 @@ namespace SourceGit.ViewModels
             {
                 var oldCommits = _commits;
 
+                // Request scroll offset to be saved before the update
+                if (oldCommits != null && oldCommits.Count > 0)
+                    PendingScrollOffset = -1; // Signal to save current offset
+
                 // Ignore selection changes while we're updating the commits list
                 _ignoreSelectionChange = true;
 
@@ -115,6 +119,10 @@ namespace SourceGit.ViewModels
                     {
                         _buildServerPoller?.StopPolling();
                     }
+
+                    // Request scroll offset to be restored after the update
+                    if (oldCommits != null && oldCommits.Count > 0)
+                        Dispatcher.UIThread.Post(() => PendingScrollOffset = 0); // Signal to restore saved offset
                 }
 
                 _ignoreSelectionChange = false;
@@ -227,6 +235,12 @@ namespace SourceGit.ViewModels
                     OnPropertyChanged(nameof(BottomArea));
                 }
             }
+        }
+
+        public double? PendingScrollOffset
+        {
+            get => _pendingScrollOffset;
+            set => SetProperty(ref _pendingScrollOffset, value);
         }
 
         public Histories(Repository repo)
@@ -594,6 +608,7 @@ namespace SourceGit.ViewModels
         private GridLength _topArea = new(1, GridUnitType.Star);
         private GridLength _bottomArea = new(1, GridUnitType.Star);
         private bool _isCollapseDetails = false;
+        private double? _pendingScrollOffset = null;
 
         private void ReinitializeBuildServerPolling()
         {
