@@ -20,10 +20,7 @@ namespace SourceGit.Commands
             if (!succ)
                 return false;
 
-            if (recursive)
-                Args = $"submodule update --init --recursive -- {relativePath.Quoted()}";
-            else
-                Args = $"submodule update --init -- {relativePath.Quoted()}";
+            Args = $"submodule update --init -- {relativePath.Quoted()}";
             return await ExecAsync().ConfigureAwait(false);
         }
 
