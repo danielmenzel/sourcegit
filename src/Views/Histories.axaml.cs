@@ -383,6 +383,40 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+
+            if (_historiesViewModel != null)
+                _historiesViewModel.PropertyChanged -= OnHistoriesViewModelPropertyChanged;
+
+            if (DataContext is ViewModels.Histories histories)
+            {
+                _historiesViewModel = histories;
+                _historiesViewModel.PropertyChanged += OnHistoriesViewModelPropertyChanged;
+            }
+        }
+
+        private void OnHistoriesViewModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ViewModels.Histories.PendingScrollOffset) &&
+                sender is ViewModels.Histories histories)
+            {
+                if (histories.PendingScrollOffset == -1)
+                {
+                    // Save current scroll offset
+                    _savedScrollOffset = SaveScrollOffset();
+                    histories.PendingScrollOffset = null;
+                }
+                else if (histories.PendingScrollOffset == 0 && _savedScrollOffset != null)
+                {
+                    // Schedule scroll restoration after layout completes
+                    _pendingScrollRestore = true;
+                    histories.PendingScrollOffset = null;
+                }
+            }
+        }
+
         public async Task GotoParent()
         {
             if (DataContext is not ViewModels.Histories vm)
@@ -763,6 +797,15 @@ namespace SourceGit.Views
             if (!IsLoaded)
                 return;
 
+            // Restore scroll offset if pending (must happen after layout update)
+            if (_pendingScrollRestore && _savedScrollOffset != null)
+            {
+                _pendingScrollRestore = false;
+                var offset = _savedScrollOffset.Value;
+                _savedScrollOffset = null;
+                RestoreScrollOffset(offset);
+            }
+
             var dataGrid = CommitListContainer;
             var rowsPresenter = dataGrid.FindDescendantOfType<DataGridRowsPresenter>();
             if (rowsPresenter == null)
@@ -800,6 +843,18 @@ namespace SourceGit.Views
         {
             if (DataContext is ViewModels.Histories histories)
                 CommitListContainer.ScrollIntoView(histories.Commits[0], null);
+        }
+
+        private double? SaveScrollOffset()
+        {
+            var scrollViewer = CommitListContainer.FindDescendantOfType<ScrollViewer>();
+            return scrollViewer?.Offset.Y;
+        }
+
+        private void RestoreScrollOffset(double offset)
+        {
+            var scrollViewer = CommitListContainer.FindDescendantOfType<ScrollViewer>();
+            scrollViewer?.SetCurrentValue(ScrollViewer.OffsetProperty, new Vector(0, offset));
         }
 
         private void OnCommitListContextRequested(object sender, ContextRequestedEventArgs e)
@@ -1985,6 +2040,9 @@ namespace SourceGit.Views
             else
                 await this.ShowDialogAsync(new ViewModels.InteractiveRebase(repo, on, prefill));
         }
+        private ViewModels.Histories _historiesViewModel = null;
+        private double? _savedScrollOffset = null;
+        private bool _pendingScrollRestore = false;
 
         private void OnBuildStatusClicked(object sender, PointerPressedEventArgs e)
         {
