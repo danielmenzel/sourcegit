@@ -86,6 +86,15 @@ namespace SourceGit.Views
                 nameof(WarnSubjectLength),
                 static o => o.WarnSubjectLength);
 
+        public static readonly StyledProperty<IEnumerable<string>> AutoCompleteFilePathsProperty =
+            AvaloniaProperty.Register<CommitMessageTextBox, IEnumerable<string>>(nameof(AutoCompleteFilePaths));
+
+        public IEnumerable<string> AutoCompleteFilePaths
+        {
+            get => GetValue(AutoCompleteFilePathsProperty);
+            set => SetValue(AutoCompleteFilePathsProperty, value);
+        }
+
         public bool WarnSubjectLength
         {
             get => _warnSubjectLen;
@@ -275,6 +284,35 @@ namespace SourceGit.Views
                         if (t.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
                             !editLine.StartsWith(t, StringComparison.Ordinal))
                             matches.Add(new(this, t, suggestionMatchStartIdx, prefix.Length));
+                    }
+
+                    // Add auto-complete for file paths
+                    var filePaths = AutoCompleteFilePaths;
+                    if (filePaths != null)
+                    {
+                        var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var filePath in filePaths)
+                        {
+                            var fileName = Path.GetFileName(filePath);
+                            var fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
+
+                            if (!string.IsNullOrEmpty(fileName) &&
+                                fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                                !fileName.Equals(prefix, StringComparison.OrdinalIgnoreCase) &&
+                                added.Add(fileName))
+                            {
+                                matches.Add(new(this, fileName, suggestionMatchStartIdx, prefix.Length));
+                            }
+
+                            if (!string.IsNullOrEmpty(fileNameWithoutExt) &&
+                                !fileNameWithoutExt.Equals(fileName, StringComparison.OrdinalIgnoreCase) &&
+                                fileNameWithoutExt.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                                !fileNameWithoutExt.Equals(prefix, StringComparison.OrdinalIgnoreCase) &&
+                                added.Add(fileNameWithoutExt))
+                            {
+                                matches.Add(new(this, fileNameWithoutExt, suggestionMatchStartIdx, prefix.Length));
+                            }
+                        }
                     }
                 }
 
@@ -499,6 +537,15 @@ namespace SourceGit.Views
         {
             get => _commitMessage;
             set => SetAndRaise(CommitMessageProperty, ref _commitMessage, value);
+        }
+
+        public static readonly StyledProperty<IEnumerable<string>> AutoCompleteFilePathsProperty =
+            AvaloniaProperty.Register<CommitMessageToolBox, IEnumerable<string>>(nameof(AutoCompleteFilePaths));
+
+        public IEnumerable<string> AutoCompleteFilePaths
+        {
+            get => GetValue(AutoCompleteFilePathsProperty);
+            set => SetValue(AutoCompleteFilePathsProperty, value);
         }
 
         public CommitMessageToolBox()

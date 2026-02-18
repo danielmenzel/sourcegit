@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 using Avalonia.Data.Converters;
 
@@ -21,5 +22,8 @@ namespace SourceGit.Converters
 
         public static readonly FuncValueConverter<IList, bool> IsOnlyTop100Shows =
             new FuncValueConverter<IList, bool>(v => v != null && v.Count > 100);
+
+        public static readonly FuncValueConverter<List<Models.Change>, IEnumerable<string>> ToFilePaths =
+            new FuncValueConverter<List<Models.Change>, IEnumerable<string>>(v => v?.Select(c => c.Path));
     }
 }
