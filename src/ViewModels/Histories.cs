@@ -151,10 +151,6 @@ namespace SourceGit.ViewModels
                     {
                         _buildServerPoller?.StopPolling();
                     }
-
-                    // Request scroll offset to be restored after the update
-                    if (oldCommits != null && oldCommits.Count > 0)
-                        Dispatcher.UIThread.Post(() => PendingScrollOffset = 0); // Signal to restore saved offset
                 }
 
                 _ignoreSelectionChange = false;
@@ -735,6 +731,9 @@ namespace SourceGit.ViewModels
                         {
                             // Remember the currently selected commit
                             var lastSelected = _selectedCommit;
+
+                            // Request scroll offset to be saved before the update
+                            PendingScrollOffset = -1;
 
                             // Ignore selection changes while updating the commits list
                             _ignoreSelectionChange = true;
