@@ -12,6 +12,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -383,15 +384,27 @@ namespace SourceGit.Views
             {
                 if (histories.PendingScrollOffset == -1)
                 {
-                    // Save current scroll offset
-                    _savedScrollOffset = SaveScrollOffset();
+                    // Only capture the offset on the first signal. Subsequent signals
+                    // (from overlapping refreshes) arrive after the DataGrid has already
+                    // reset the scroll to 0, so saving again would lose the real position.
+                    if (_savedScrollOffset == null)
+                        _savedScrollOffset = SaveScrollOffset();
+
                     histories.PendingScrollOffset = null;
-                }
-                else if (histories.PendingScrollOffset == 0 && _savedScrollOffset != null)
-                {
-                    // Schedule scroll restoration after layout completes
-                    _pendingScrollRestore = true;
-                    histories.PendingScrollOffset = null;
+
+                    // Post the restore at Loaded priority (6) which is processed after
+                    // Render priority (7) where layout passes run.  By that time the
+                    // DataGrid has fully rebuilt its rows and the ScrollViewer extent is
+                    // correct, so the offset can actually be applied.
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (_savedScrollOffset != null)
+                        {
+                            var offset = _savedScrollOffset.Value;
+                            _savedScrollOffset = null;
+                            RestoreScrollOffset(offset);
+                        }
+                    }, DispatcherPriority.Loaded);
                 }
             }
         }
@@ -611,15 +624,6 @@ namespace SourceGit.Views
         {
             if (!IsLoaded)
                 return;
-
-            // Restore scroll offset if pending (must happen after layout update)
-            if (_pendingScrollRestore && _savedScrollOffset != null)
-            {
-                _pendingScrollRestore = false;
-                var offset = _savedScrollOffset.Value;
-                _savedScrollOffset = null;
-                RestoreScrollOffset(offset);
-            }
 
             var dataGrid = CommitListContainer;
             var rowsPresenter = dataGrid.FindDescendantOfType<DataGridRowsPresenter>();
@@ -1813,7 +1817,6 @@ namespace SourceGit.Views
         private Cursor _resizingCursor = new(StandardCursorType.SizeWestEast);
         private ViewModels.Histories _historiesViewModel = null;
         private double? _savedScrollOffset = null;
-        private bool _pendingScrollRestore = false;
 
         private void OnBuildStatusClicked(object sender, PointerPressedEventArgs e)
         {
