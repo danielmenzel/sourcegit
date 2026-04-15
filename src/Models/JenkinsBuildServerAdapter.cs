@@ -76,7 +76,7 @@ namespace SourceGit.Models
             catch (Exception ex)
             {
                 // Log error but don't fail - build status is not critical
-                App.RaiseException(string.Empty, $"Failed to query Jenkins build status: {ex.Message}");
+                Notification.Send(string.Empty, $"Failed to query Jenkins build status: {ex.Message}", true);
                 return result;
             }
         }
@@ -124,11 +124,11 @@ namespace SourceGit.Models
                         return;
                     }
 
-                    App.RaiseException(string.Empty, $"Jenkins returned {response.StatusCode} for project '{projectName}'. Authentication required.");
+                    Notification.Send(string.Empty, $"Jenkins returned {response.StatusCode} for project '{projectName}'. Authentication required.", true);
                     return;
                 }
                 
-                App.RaiseException(string.Empty, $"Jenkins returned {response.StatusCode} for project '{projectName}'");
+                Notification.Send(string.Empty, $"Jenkins returned {response.StatusCode} for project '{projectName}'", true);
                 return;
             }
 

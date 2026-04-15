@@ -33,7 +33,7 @@ namespace SourceGit.ViewModels
         {
             if (_repo.LocalChangesCount == 0 && !AutoStage)
             {
-                App.RaiseException(_repo.FullPath, "No changes to commit!");
+                Models.Notification.Send(_repo.FullPath, "No changes to commit!", true);
                 return false;
             }
 

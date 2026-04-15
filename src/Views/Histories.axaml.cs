@@ -1114,7 +1114,7 @@ namespace SourceGit.Views
                 {
                     var createFixup = new MenuItem();
                     createFixup.Header = App.Text("CommitCM.CreateFixupCommit");
-                    createFixup.Icon = App.CreateMenuIcon("Icons.Fix");
+                    createFixup.Icon = this.CreateMenuIcon("Icons.Fix");
                     createFixup.Click += (_, e) =>
                     {
                         if (repo.CanCreatePopup())
