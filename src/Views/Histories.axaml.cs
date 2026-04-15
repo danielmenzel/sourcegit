@@ -384,27 +384,48 @@ namespace SourceGit.Views
             {
                 if (histories.PendingScrollOffset == -1)
                 {
-                    // Only capture the offset on the first signal. Subsequent signals
-                    // (from overlapping refreshes) arrive after the DataGrid has already
-                    // reset the scroll to 0, so saving again would lose the real position.
-                    if (_savedScrollOffset == null)
-                        _savedScrollOffset = SaveScrollOffset();
-
                     histories.PendingScrollOffset = null;
 
-                    // Post the restore at Loaded priority (6) which is processed after
-                    // Render priority (7) where layout passes run.  By that time the
-                    // DataGrid has fully rebuilt its rows and the ScrollViewer extent is
-                    // correct, so the offset can actually be applied.
-                    Dispatcher.UIThread.Post(() =>
+                    // Calculate which row is at the top of the viewport.
+                    // RowHeight=26, ColumnHeaderHeight=24 (from AXAML).
+                    var savedOffset = GetDataGridVerticalOffset();
+                    const double rowHeight = 26.0;
+                    var savedTopRow = (int)(savedOffset / rowHeight);
+                    var viewportRows = Math.Max(1, (int)((CommitListContainer.Bounds.Height - 24) / rowHeight));
+                    var lastVisibleRow = savedTopRow + viewportRows - 1;
+
+                    _suppressScrollIntoView = true;
+
+                    if (savedTopRow > 0)
                     {
-                        if (_savedScrollOffset != null)
+                        // After the DataGrid rebuilds at offset 0, scroll the last
+                        // originally-visible row into view.  Since it's below the
+                        // viewport, ScrollIntoView places it at the bottom edge,
+                        // restoring approximately the original scroll position.
+                        void restoreOnLayout(object s, EventArgs ev)
                         {
-                            var offset = _savedScrollOffset.Value;
-                            _savedScrollOffset = null;
-                            RestoreScrollOffset(offset);
+                            CommitListContainer.LayoutUpdated -= restoreOnLayout;
+
+                            if (DataContext is ViewModels.Histories { Commits: { Count: > 0 } commits })
+                            {
+                                var targetIdx = Math.Min(lastVisibleRow, commits.Count - 1);
+                                CommitListContainer.ScrollIntoView(commits[targetIdx], null);
+                            }
+
+                            void clearSuppress(object s2, EventArgs ev2)
+                            {
+                                CommitListContainer.LayoutUpdated -= clearSuppress;
+                                _suppressScrollIntoView = false;
+                            }
+                            CommitListContainer.LayoutUpdated += clearSuppress;
                         }
-                    }, DispatcherPriority.Loaded);
+                        CommitListContainer.LayoutUpdated += restoreOnLayout;
+                    }
+                    else
+                    {
+                        Dispatcher.UIThread.Post(() => _suppressScrollIntoView = false,
+                            DispatcherPriority.Loaded);
+                    }
                 }
             }
         }
@@ -666,15 +687,11 @@ namespace SourceGit.Views
 
         private double? SaveScrollOffset()
         {
-            var scrollViewer = CommitListContainer.FindDescendantOfType<ScrollViewer>();
-            return scrollViewer?.Offset.Y;
+            if (s_verticalOffsetField != null)
+                return (double)s_verticalOffsetField.GetValue(CommitListContainer);
+            return 0;
         }
 
-        private void RestoreScrollOffset(double offset)
-        {
-            var scrollViewer = CommitListContainer.FindDescendantOfType<ScrollViewer>();
-            scrollViewer?.SetCurrentValue(ScrollViewer.OffsetProperty, new Vector(0, offset));
-        }
 
         private void OnCommitListContextRequested(object sender, ContextRequestedEventArgs e)
         {
@@ -1816,7 +1833,7 @@ namespace SourceGit.Views
         private bool _resizingAuthorColumn = false;
         private Cursor _resizingCursor = new(StandardCursorType.SizeWestEast);
         private ViewModels.Histories _historiesViewModel = null;
-        private double? _savedScrollOffset = null;
+        private bool _suppressScrollIntoView = false;
 
         private void OnBuildStatusClicked(object sender, PointerPressedEventArgs e)
         {
