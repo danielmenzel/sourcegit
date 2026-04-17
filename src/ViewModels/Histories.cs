@@ -667,42 +667,10 @@ namespace SourceGit.ViewModels
                 CreateAdapter,
                 () =>
                 {
-                    // Force UI refresh after build statuses have been updated
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        if (_commits != null && _commits.Count > 0)
-                        {
-                            // Remember the currently selected commit
-                            var lastSelected = _selectedCommit;
-
-                            // Request scroll offset to be saved before the update
-                            PendingScrollOffset = -1;
-
-                            // Ignore selection changes while updating the commits list
-                            _ignoreSelectionChange = true;
-
-                            // Create a new list to force DataGrid to rebind and re-render all rows
-                            var updatedCommits = new List<Models.Commit>(_commits);
-                            SetProperty(ref _commits, updatedCommits, nameof(Commits));
-
-                            // Restore selection if there was one
-                            if (lastSelected != null)
-                            {
-                                var foundCommit = updatedCommits.Find(x => x.SHA == lastSelected.SHA);
-                                if (foundCommit != null)
-                                {
-                                    _selectedCommit = foundCommit;
-                                    OnPropertyChanged(nameof(SelectedCommit));
-
-                                    // Update detail context with the found commit
-                                    if (_detailContext is CommitDetail detail)
-                                        detail.Commit = foundCommit;
-                                }
-                            }
-
-                            _ignoreSelectionChange = false;
-                        }
-                    });
+                    // BuildInfos is set directly on each Commit object by the poller.
+                    // Since Commit implements INotifyPropertyChanged for BuildInfos,
+                    // the DataGrid cells update automatically — no need to replace
+                    // the list or touch scroll position.
                 });
 
             if (_commits.Count > 0)

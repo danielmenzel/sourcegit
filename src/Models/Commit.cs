@@ -29,7 +29,21 @@ namespace SourceGit.Models
         public bool IsMerged { get; set; } = false;
         public int Color { get; set; } = 0;
         public double LeftMargin { get; set; } = 0;
-        public List<CommitBuildInfo>? BuildInfos { get; set; } = null;
+
+        public List<CommitBuildInfo>? BuildInfos
+        {
+            get => _buildInfos;
+            set
+            {
+                if (_buildInfos != value)
+                {
+                    _buildInfos = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private List<CommitBuildInfo>? _buildInfos;
 
         public bool IsHighlightedInGraph
         {
