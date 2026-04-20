@@ -303,23 +303,11 @@ namespace SourceGit.Views
                 static o => o.CurrentBranch,
                 static (o, v) => o.CurrentBranch = v);
 
-        public Models.Branch CurrentBranch
-        {
-            get => _currentBranch;
-            set => SetAndRaise(CurrentBranchProperty, ref _currentBranch, value);
-        }
-
         public static readonly DirectProperty<Histories, Models.Bisect> BisectProperty =
             AvaloniaProperty.RegisterDirect<Histories, Models.Bisect>(
                 nameof(Bisect),
                 static o => o.Bisect,
                 static (o, v) => o.Bisect = v);
-
-        public Models.Bisect Bisect
-        {
-            get => _bisect;
-            set => SetAndRaise(BisectProperty, ref _bisect, value);
-        }
 
         public static readonly DirectProperty<Histories, bool> HasSingleRemoteProperty =
             AvaloniaProperty.RegisterDirect<Histories, bool>(
@@ -327,23 +315,11 @@ namespace SourceGit.Views
                 static o => o.HasSingleRemote,
                 static (o, v) => o.HasSingleRemote = v);
 
-        public bool HasSingleRemote
-        {
-            get => _hasSingleRemote;
-            set => SetAndRaise(HasSingleRemoteProperty, ref _hasSingleRemote, value);
-        }
-
         public static readonly DirectProperty<Histories, AvaloniaList<Models.IssueTracker>> IssueTrackersProperty =
             AvaloniaProperty.RegisterDirect<Histories, AvaloniaList<Models.IssueTracker>>(
                 nameof(IssueTrackers),
                 static o => o.IssueTrackers,
                 static (o, v) => o.IssueTrackers = v);
-
-        public AvaloniaList<Models.IssueTracker> IssueTrackers
-        {
-            get => _issueTrackers;
-            set => SetAndRaise(IssueTrackersProperty, ref _issueTrackers, value);
-        }
 
         public static readonly DirectProperty<Histories, bool> IsScrollToTopVisibleProperty =
             AvaloniaProperty.RegisterDirect<Histories, bool>(
@@ -351,17 +327,50 @@ namespace SourceGit.Views
                 static o => o.IsScrollToTopVisible,
                 static (o, v) => o.IsScrollToTopVisible = v);
 
-        public bool IsScrollToTopVisible
-        {
-            get => _isScrollToTopVisible;
-            set => SetAndRaise(IsScrollToTopVisibleProperty, ref _isScrollToTopVisible, value);
-        }
-
         public static readonly DirectProperty<Histories, bool> IsDetailsPanelExpandedProperty =
             AvaloniaProperty.RegisterDirect<Histories, bool>(
                 nameof(IsDetailsPanelExpanded),
                 static o => o.IsDetailsPanelExpanded,
                 static (o, v) => o.IsDetailsPanelExpanded = v);
+
+        private Models.Branch _currentBranch = null;
+        private Models.Bisect _bisect = null;
+        private bool _hasSingleRemote = false;
+        private AvaloniaList<Models.IssueTracker> _issueTrackers = null;
+        private bool _isScrollToTopVisible = false;
+        private bool _isDetailsPanelExpanded = true;
+        private bool _resizingAuthorColumn = false;
+        private Cursor _resizingCursor = new(StandardCursorType.SizeWestEast);
+
+        public Models.Branch CurrentBranch
+        {
+            get => _currentBranch;
+            set => SetAndRaise(CurrentBranchProperty, ref _currentBranch, value);
+        }
+
+        public Models.Bisect Bisect
+        {
+            get => _bisect;
+            set => SetAndRaise(BisectProperty, ref _bisect, value);
+        }
+
+        public bool HasSingleRemote
+        {
+            get => _hasSingleRemote;
+            set => SetAndRaise(HasSingleRemoteProperty, ref _hasSingleRemote, value);
+        }
+
+        public AvaloniaList<Models.IssueTracker> IssueTrackers
+        {
+            get => _issueTrackers;
+            set => SetAndRaise(IssueTrackersProperty, ref _issueTrackers, value);
+        }
+
+        public bool IsScrollToTopVisible
+        {
+            get => _isScrollToTopVisible;
+            set => SetAndRaise(IsScrollToTopVisibleProperty, ref _isScrollToTopVisible, value);
+        }
 
         public bool IsDetailsPanelExpanded
         {
@@ -1229,6 +1238,20 @@ namespace SourceGit.Views
 
                 if (!isHead)
                 {
+                    var createFixup = new MenuItem();
+                    createFixup.Header = App.Text("CommitCM.CreateFixupCommit");
+                    createFixup.Icon = App.CreateMenuIcon("Icons.Fix");
+                    createFixup.Click += (_, e) =>
+                    {
+                        if (repo.CanCreatePopup())
+                            repo.ShowPopup(new ViewModels.CreateFixupCommit(repo, commit));
+                        e.Handled = true;
+                    };
+                    menu.Items.Add(createFixup);
+                }
+
+                if (!isHead)
+                {
                     var checkoutCommit = new MenuItem();
                     checkoutCommit.Header = App.Text("CommitCM.Checkout");
                     checkoutCommit.Icon = this.CreateMenuIcon("Icons.Detached");
@@ -1962,14 +1985,5 @@ namespace SourceGit.Views
             else
                 await this.ShowDialogAsync(new ViewModels.InteractiveRebase(repo, on, prefill));
         }
-
-        private Models.Branch _currentBranch = null;
-        private Models.Bisect _bisect = null;
-        private bool _hasSingleRemote = false;
-        private AvaloniaList<Models.IssueTracker> _issueTrackers = null;
-        private bool _isScrollToTopVisible = false;
-        private bool _isDetailsPanelExpanded = true;
-        private bool _resizingAuthorColumn = false;
-        private Cursor _resizingCursor = new(StandardCursorType.SizeWestEast);
     }
 }
