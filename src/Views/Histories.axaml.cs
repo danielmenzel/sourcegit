@@ -1053,6 +1053,20 @@ namespace SourceGit.Views
 
                 if (!isHead)
                 {
+                    var createFixup = new MenuItem();
+                    createFixup.Header = App.Text("CommitCM.CreateFixupCommit");
+                    createFixup.Icon = App.CreateMenuIcon("Icons.Fix");
+                    createFixup.Click += (_, e) =>
+                    {
+                        if (repo.CanCreatePopup())
+                            repo.ShowPopup(new ViewModels.CreateFixupCommit(repo, commit));
+                        e.Handled = true;
+                    };
+                    menu.Items.Add(createFixup);
+                }
+
+                if (!isHead)
+                {
                     var checkoutCommit = new MenuItem();
                     checkoutCommit.Header = App.Text("CommitCM.Checkout");
                     checkoutCommit.Icon = this.CreateMenuIcon("Icons.Detached");
