@@ -363,73 +363,6 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
-        protected override void OnDataContextChanged(EventArgs e)
-        {
-            base.OnDataContextChanged(e);
-
-            if (_historiesViewModel != null)
-                _historiesViewModel.PropertyChanged -= OnHistoriesViewModelPropertyChanged;
-
-            if (DataContext is ViewModels.Histories histories)
-            {
-                _historiesViewModel = histories;
-                _historiesViewModel.PropertyChanged += OnHistoriesViewModelPropertyChanged;
-            }
-        }
-
-        private void OnHistoriesViewModelPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(ViewModels.Histories.PendingScrollOffset) &&
-                sender is ViewModels.Histories histories)
-            {
-                if (histories.PendingScrollOffset == -1)
-                {
-                    histories.PendingScrollOffset = null;
-
-                    // Calculate which row is at the top of the viewport.
-                    // RowHeight=26, ColumnHeaderHeight=24 (from AXAML).
-                    var savedOffset = GetDataGridVerticalOffset();
-                    const double rowHeight = 26.0;
-                    var savedTopRow = (int)(savedOffset / rowHeight);
-                    var viewportRows = Math.Max(1, (int)((CommitListContainer.Bounds.Height - 24) / rowHeight));
-                    var lastVisibleRow = savedTopRow + viewportRows - 1;
-
-                    _suppressScrollIntoView = true;
-
-                    if (savedTopRow > 0)
-                    {
-                        // After the DataGrid rebuilds at offset 0, scroll the last
-                        // originally-visible row into view.  Since it's below the
-                        // viewport, ScrollIntoView places it at the bottom edge,
-                        // restoring approximately the original scroll position.
-                        void restoreOnLayout(object s, EventArgs ev)
-                        {
-                            CommitListContainer.LayoutUpdated -= restoreOnLayout;
-
-                            if (DataContext is ViewModels.Histories { Commits: { Count: > 0 } commits })
-                            {
-                                var targetIdx = Math.Min(lastVisibleRow, commits.Count - 1);
-                                CommitListContainer.ScrollIntoView(commits[targetIdx], null);
-                            }
-
-                            void clearSuppress(object s2, EventArgs ev2)
-                            {
-                                CommitListContainer.LayoutUpdated -= clearSuppress;
-                                _suppressScrollIntoView = false;
-                            }
-                            CommitListContainer.LayoutUpdated += clearSuppress;
-                        }
-                        CommitListContainer.LayoutUpdated += restoreOnLayout;
-                    }
-                    else
-                    {
-                        Dispatcher.UIThread.Post(() => _suppressScrollIntoView = false,
-                            DispatcherPriority.Loaded);
-                    }
-                }
-            }
-        }
-
         public async Task GotoParent()
         {
             if (DataContext is not ViewModels.Histories vm)
@@ -684,14 +617,6 @@ namespace SourceGit.Views
             if (DataContext is ViewModels.Histories histories)
                 CommitListContainer.ScrollIntoView(histories.Commits[0], null);
         }
-
-        private double? SaveScrollOffset()
-        {
-            if (s_verticalOffsetField != null)
-                return (double)s_verticalOffsetField.GetValue(CommitListContainer);
-            return 0;
-        }
-
 
         private void OnCommitListContextRequested(object sender, ContextRequestedEventArgs e)
         {
