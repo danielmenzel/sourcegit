@@ -312,6 +312,22 @@ namespace SourceGit.Views
                             {
                                 matches.Add(new(this, fileNameWithoutExt, suggestionMatchStartIdx, prefix.Length));
                             }
+
+                            // Suggest each parent directory name in the path
+                            var dir = Path.GetDirectoryName(filePath);
+                            while (!string.IsNullOrEmpty(dir))
+                            {
+                                var dirName = Path.GetFileName(dir);
+                                if (!string.IsNullOrEmpty(dirName) &&
+                                    dirName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                                    !dirName.Equals(prefix, StringComparison.OrdinalIgnoreCase) &&
+                                    added.Add(dirName))
+                                {
+                                    matches.Add(new(this, dirName, suggestionMatchStartIdx, prefix.Length));
+                                }
+
+                                dir = Path.GetDirectoryName(dir);
+                            }
                         }
                     }
                 }
