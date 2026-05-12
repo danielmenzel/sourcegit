@@ -23,6 +23,12 @@ namespace SourceGit.Models
         // Jenkins tree query for build info - includes displayName for build configuration info
         private const string JenkinsTreeBuildInfo = "number,displayName,result,timestamp,url,building,duration,actions[lastBuiltRevision[SHA1,branch[name]],totalCount,failCount,skipCount,parameters[name,value]]";
 
+        // Suppress repeated failure notifications. The poller calls QueryBuildStatusAsync
+        // every 10-120s, so without this an unreachable build server would spam an error
+        // toast on every poll. We notify once when entering an error state and stay quiet
+        // until a successful query resets it.
+        private string _lastErrorKey;
+
         public void Initialize(BuildServerIntegration config, string repositoryPath)
         {
             _config = config;
@@ -75,10 +81,29 @@ namespace SourceGit.Models
             }
             catch (Exception ex)
             {
-                // Log error but don't fail - build status is not critical
-                Notification.Send(string.Empty, $"Failed to query Jenkins build status: {ex.Message}", true);
+                // Network-level failures (server unreachable, timeout, DNS, TLS) typically
+                // mean the user is off VPN or the server is down. Notify once per outage,
+                // then stay quiet until things recover.
+                ReportFailureOnce($"net:{ex.GetType().Name}", $"Failed to query Jenkins build status: {ex.Message}");
                 return result;
             }
+        }
+
+        private void ReportFailureOnce(string errorKey, string message)
+        {
+            if (_lastErrorKey == errorKey)
+            {
+                System.Diagnostics.Debug.WriteLine($"[JenkinsBuildServerAdapter] Suppressed repeated failure ({errorKey}): {message}");
+                return;
+            }
+
+            _lastErrorKey = errorKey;
+            Notification.Send(string.Empty, message, true);
+        }
+
+        private void ClearFailureState()
+        {
+            _lastErrorKey = null;
         }
 
         private async Task QueryProjectBuildsAsync(string projectName, List<string> commitShas, Dictionary<string, List<CommitBuildInfo>> result, bool hasRetriedWithCredentials)
@@ -124,13 +149,19 @@ namespace SourceGit.Models
                         return;
                     }
 
-                    Notification.Send(string.Empty, $"Jenkins returned {response.StatusCode} for project '{projectName}'. Authentication required.", true);
+                    ReportFailureOnce($"http:{(int)response.StatusCode}:{projectName}",
+                        $"Jenkins returned {response.StatusCode} for project '{projectName}'. Authentication required.");
                     return;
                 }
-                
-                Notification.Send(string.Empty, $"Jenkins returned {response.StatusCode} for project '{projectName}'", true);
+
+                ReportFailureOnce($"http:{(int)response.StatusCode}:{projectName}",
+                    $"Jenkins returned {response.StatusCode} for project '{projectName}'");
                 return;
             }
+
+            // Successful response - reset the failure-suppression state so that the next
+            // outage produces exactly one new notification.
+            ClearFailureState();
 
             using var stream = await response.Content.ReadAsStreamAsync();
             using var doc = await JsonDocument.ParseAsync(stream);
