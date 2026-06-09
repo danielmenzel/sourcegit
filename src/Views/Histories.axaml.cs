@@ -1757,8 +1757,6 @@ namespace SourceGit.Views
         private bool _isDetailsPanelExpanded = true;
         private bool _resizingAuthorColumn = false;
         private Cursor _resizingCursor = new(StandardCursorType.SizeWestEast);
-        private ViewModels.Histories _historiesViewModel = null;
-        private bool _suppressScrollIntoView = false;
 
         private void OnBuildStatusClicked(object sender, PointerPressedEventArgs e)
         {
