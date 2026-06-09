@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Controls.Primitives;
 
 namespace SourceGit
 {
@@ -51,6 +52,20 @@ namespace SourceGit
         }
     }
 
+    public class DataGridLengthConverter : JsonConverter<DataGridLength>
+    {
+        public override DataGridLength Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            var size = reader.GetDouble();
+            return new DataGridLength(size, DataGridLengthUnitType.Pixel, 0, size);
+        }
+
+        public override void Write(Utf8JsonWriter writer, DataGridLength value, JsonSerializerOptions options)
+        {
+            writer.WriteNumberValue(value.DisplayValue);
+        }
+    }
+
     [JsonSourceGenerationOptions(
         WriteIndented = true,
         IgnoreReadOnlyFields = true,
@@ -59,6 +74,7 @@ namespace SourceGit
             typeof(DateTimeConverter),
             typeof(ColorConverter),
             typeof(GridLengthConverter),
+            typeof(DataGridLengthConverter),
         ]
     )]
     [JsonSerializable(typeof(Models.ExternalToolCustomization))]

@@ -342,8 +342,6 @@ namespace SourceGit.Views
         private bool _isDetailsPanelExpanded = true;
         private bool _resizingAuthorColumn = false;
         private Cursor _resizingCursor = new(StandardCursorType.SizeWestEast);
-        private ViewModels.Histories _historiesViewModel = null;
-        private bool _suppressScrollIntoView = false;
 
         public Models.Branch CurrentBranch
         {
@@ -470,6 +468,14 @@ namespace SourceGit.Views
                 if (c != null)
                     vm.NavigateTo(c.SHA);
             }
+        }
+
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+
+            if (DataContext is ViewModels.Histories vm)
+                CommitListContainer.Columns[1].Width = new(vm.AuthorColumnWidth, DataGridLengthUnitType.Pixel);
         }
 
         private void OnCommitListHeaderPointerMoved(object sender, PointerEventArgs e)

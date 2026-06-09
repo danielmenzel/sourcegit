@@ -653,18 +653,18 @@ namespace SourceGit.ViewModels
         private bool _isCollapseDetails = false;
 
         private void ReinitializeBuildServerPolling()
-    {
-        // Stop and dispose the old poller
-        _buildServerPoller?.Dispose();
-        _buildServerPoller = null;
-
-        // Now reinitialize if we have commits and a valid build server config
-        if (_commits.Count > 0 && _repo?.BuildServer != null)
         {
-            InitializeBuildServerPolling();
-            _buildServerPoller?.StartPolling(_commits);
+            // Stop and dispose the old poller
+            _buildServerPoller?.Dispose();
+            _buildServerPoller = null;
+
+            // Now reinitialize if we have commits and a valid build server config
+            if (_commits.Count > 0 && _repo?.BuildServer != null)
+            {
+                InitializeBuildServerPolling();
+                _buildServerPoller?.StartPolling(_commits);
+            }
         }
-    }
 
         private void InitializeBuildServerPolling()
         {
