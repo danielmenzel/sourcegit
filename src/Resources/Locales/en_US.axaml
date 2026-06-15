@@ -712,6 +712,11 @@
   <x:String x:Key="Text.Preferences.General.Use24Hours" xml:space="preserve">24-Hours</x:String>
   <x:String x:Key="Text.Preferences.General.UseCompactBranchNames" xml:space="preserve">Use compact branch names in commit graph</x:String>
   <x:String x:Key="Text.Preferences.General.UseGitHubStyleAvatar" xml:space="preserve">Generate Github style default avatar</x:String>
+  <x:String x:Key="Text.Preferences.Backup" xml:space="preserve">BACKUP</x:String>
+  <x:String x:Key="Text.Preferences.Backup.Directory" xml:space="preserve">Backup Directory</x:String>
+  <x:String x:Key="Text.Preferences.Backup.Enabled" xml:space="preserve">Enable automatic settings backup</x:String>
+  <x:String x:Key="Text.Preferences.Backup.Retention" xml:space="preserve">Retention</x:String>
+  <x:String x:Key="Text.Preferences.Backup.RetentionDays" xml:space="preserve">days</x:String>
   <x:String x:Key="Text.Preferences.Git" xml:space="preserve">GIT</x:String>
   <x:String x:Key="Text.Preferences.Git.CRLF" xml:space="preserve">Enable Auto CRLF</x:String>
   <x:String x:Key="Text.Preferences.Git.DefaultCloneDir" xml:space="preserve">Default Clone Dir</x:String>

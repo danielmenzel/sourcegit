@@ -512,6 +512,27 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
+        private async void SelectBackupDirectory(object _, RoutedEventArgs e)
+        {
+            var options = new FolderPickerOpenOptions() { AllowMultiple = false };
+            try
+            {
+                var selected = await StorageProvider.OpenFolderPickerAsync(options);
+                if (selected.Count == 1)
+                {
+                    var folder = selected[0];
+                    var folderPath = folder is { Path: { IsAbsoluteUri: true } path } ? path.LocalPath : folder?.Path.ToString();
+                    ViewModels.Preferences.Instance.SettingsBackupDirectory = folderPath;
+                }
+            }
+            catch (Exception ex)
+            {
+                await new Alert().ShowAsync(this, $"Failed to select backup directory: {ex.Message}", true);
+            }
+
+            e.Handled = true;
+        }
+
         private void UpdateGitVersion()
         {
             GitVersion = Native.OS.GitVersionString;
