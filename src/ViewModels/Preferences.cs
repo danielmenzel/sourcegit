@@ -193,6 +193,24 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _check4UpdatesOnStartup, value);
         }
 
+        public bool SettingsBackupEnabled
+        {
+            get => _settingsBackupEnabled;
+            set => SetProperty(ref _settingsBackupEnabled, value);
+        }
+
+        public string SettingsBackupDirectory
+        {
+            get => _settingsBackupDirectory;
+            set => SetProperty(ref _settingsBackupDirectory, value);
+        }
+
+        public int SettingsBackupRetentionDays
+        {
+            get => _settingsBackupRetentionDays;
+            set => SetProperty(ref _settingsBackupRetentionDays, value);
+        }
+
         public string IgnoreUpdateTag
         {
             get => _ignoreUpdateTag;
@@ -641,6 +659,58 @@ namespace SourceGit.ViewModels
 
             var finalFile = Path.Combine(Native.OS.BasicDirectories.ConfigDir, "preference.json");
             File.Move(tmpfile, finalFile, true);
+
+            BackupSettings(finalFile);
+        }
+
+        private void BackupSettings(string sourceFile)
+        {
+            if (!_settingsBackupEnabled)
+                return;
+
+            var backupDir = _settingsBackupDirectory;
+            if (string.IsNullOrWhiteSpace(backupDir))
+                return;
+
+            try
+            {
+                if (!Directory.Exists(backupDir))
+                    Directory.CreateDirectory(backupDir);
+
+                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                var backupFile = Path.Combine(backupDir, $"preference_{timestamp}.json");
+                File.Copy(sourceFile, backupFile, true);
+
+                CleanOldBackups(backupDir);
+            }
+            catch
+            {
+                // Silently ignore backup failures.
+            }
+        }
+
+        private void CleanOldBackups(string backupDir)
+        {
+            var retentionDays = _settingsBackupRetentionDays;
+            if (retentionDays <= 0)
+                return;
+
+            try
+            {
+                var cutoff = DateTime.Now.AddDays(-retentionDays);
+                var pattern = "preference_*.json";
+
+                foreach (var file in Directory.GetFiles(backupDir, pattern))
+                {
+                    var fi = new FileInfo(file);
+                    if (fi.LastWriteTime < cutoff)
+                        fi.Delete();
+                }
+            }
+            catch
+            {
+                // Silently ignore cleanup failures.
+            }
         }
 
         private static Preferences Load()
@@ -843,6 +913,10 @@ namespace SourceGit.ViewModels
         private int _imageDiffActiveIdx = 0;
         private bool _enableCompactFoldersInChangesTree = false;
         private Models.ChangeViewMode _changeViewMode = Models.ChangeViewMode.List;
+
+        private bool _settingsBackupEnabled = false;
+        private string _settingsBackupDirectory = string.Empty;
+        private int _settingsBackupRetentionDays = 7;
 
         private string _gitDefaultCloneDir = string.Empty;
         private int _shellOrTerminalType = -1;
