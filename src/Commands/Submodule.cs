@@ -12,7 +12,7 @@ namespace SourceGit.Commands
             Context = repo;
         }
 
-        public async Task<bool> AddAsync(string url, string relativePath, bool recursive)
+        public async Task<bool> AddAsync(string url, string relativePath)
         {
             Args = $"-c protocol.file.allow=always submodule add {url.Quoted()} {relativePath.Quoted()}";
 
@@ -40,15 +40,13 @@ namespace SourceGit.Commands
             return await ExecAsync().ConfigureAwait(false);
         }
 
-        public async Task<bool> UpdateAsync(List<string> modules, bool init, bool recursive, bool useRemote)
+        public async Task<bool> UpdateAsync(List<string> modules, bool init, bool useRemote)
         {
             var builder = new StringBuilder();
             builder.Append("submodule update");
 
             if (init)
                 builder.Append(" --init");
-            if (recursive)
-                builder.Append(" --recursive");
             if (useRemote)
                 builder.Append(" --remote");
             if (modules.Count > 0)

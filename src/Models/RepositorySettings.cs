@@ -30,12 +30,6 @@ namespace SourceGit.Models
             set;
         } = string.Empty;
 
-        public bool EnableRecursiveWhenAutoUpdatingSubmodules
-        {
-            get;
-            set;
-        } = true;
-
         public bool AskBeforeAutoUpdatingSubmodules
         {
             get;

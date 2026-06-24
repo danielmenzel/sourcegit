@@ -169,7 +169,7 @@ namespace SourceGit.ViewModels
                     await new Commands.Submodule(path)
                         .WithCancellation(token)
                         .Use(log)
-                        .UpdateAsync(submodules, true, true, false);
+                        .UpdateAsync(submodules, true, false);
             }
 
             log.Complete();

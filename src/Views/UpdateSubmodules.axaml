@@ -63,10 +63,6 @@
                 IsChecked="{Binding EnableRemote, Mode=TwoWay}"
                 ToolTip.Tip="--remote"/>
 
-      <CheckBox Grid.Row="4" Grid.Column="1"
-                Content="{DynamicResource Text.UpdateSubmodules.Recursive}"
-                IsChecked="{Binding EnableRecursive, Mode=TwoWay}"
-                ToolTip.Tip="--recursive"/>
     </Grid>
   </StackPanel>
 </UserControl>

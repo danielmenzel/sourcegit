@@ -21,12 +21,6 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _relativePath, value);
         }
 
-        public bool Recursive
-        {
-            get;
-            set;
-        }
-
         public AddSubmodule(Repository repo)
         {
             _repo = repo;
@@ -61,7 +55,7 @@ namespace SourceGit.ViewModels
 
             var succ = await new Commands.Submodule(_repo.FullPath)
                 .Use(log)
-                .AddAsync(_url, relativePath, Recursive);
+                .AddAsync(_url, relativePath);
 
             log.Complete();
             return succ;

@@ -59,9 +59,6 @@
         </TextBox.InnerLeftContent>
       </TextBox>
 
-      <CheckBox Grid.Row="2" Grid.Column="1"
-                Content="{DynamicResource Text.Submodule.FetchNested}"
-                IsChecked="{Binding Recursive, Mode=TwoWay}"/>
     </Grid>
   </StackPanel>
 </UserControl>
