@@ -1541,7 +1541,7 @@ namespace SourceGit.ViewModels
 
                 await new Commands.Submodule(FullPath)
                     .Use(log)
-                    .UpdateAsync(submodules, false, _settings.EnableRecursiveWhenAutoUpdatingSubmodules, false);
+                    .UpdateAsync(submodules, false, false);
             } while (false);
         }
 

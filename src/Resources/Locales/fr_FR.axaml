@@ -889,7 +889,6 @@
   <x:String x:Key="Text.Submodule.CopyBranch" xml:space="preserve">Branche</x:String>
   <x:String x:Key="Text.Submodule.CopyPath" xml:space="preserve">Chemin relatif</x:String>
   <x:String x:Key="Text.Submodule.Deinit" xml:space="preserve">Désinitialiser</x:String>
-  <x:String x:Key="Text.Submodule.FetchNested" xml:space="preserve">Fetch les sous-modules imbriqués</x:String>
   <x:String x:Key="Text.Submodule.Histories" xml:space="preserve">Historique</x:String>
   <x:String x:Key="Text.Submodule.Move" xml:space="preserve">Déplacer Vers</x:String>
   <x:String x:Key="Text.Submodule.Open" xml:space="preserve">Ouvrir le dépôt de sous-module</x:String>

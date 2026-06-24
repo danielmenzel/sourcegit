@@ -41,7 +41,6 @@ This document shows the translation status of each locale file in the repository
 - Text.Compare.Commits.LeftOnly
 - Text.Compare.Commits.RightOnly
 - Text.Compare.Commits.Tips
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.ConfigureCustomActionControls.StringFormatter
 - Text.ConfigureCustomActionControls.StringFormatter.Tip
 - Text.ConfigureCustomActionControls.UseFriendlyName
@@ -129,7 +128,6 @@ This document shows the translation status of each locale file in the repository
 - Text.CheckoutDetached
 - Text.CheckoutDetached.Target
 - Text.CheckoutDetached.Warning
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.CopyAsPatch
 - Text.DeleteBranch.AskForRemote
 - Text.DeleteBranch.Force
@@ -189,7 +187,6 @@ This document shows the translation status of each locale file in the repository
 - Text.CheckoutDetached.Warning
 - Text.CommitCM.CopyAuthorTime
 - Text.CommitCM.CopyCommitterTime
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.CopyAsPatch
 - Text.DeleteBranch.AskForRemote
 - Text.DeleteBranch.Force
@@ -238,7 +235,6 @@ This document shows the translation status of each locale file in the repository
 - Text.CheckoutDetached.Warning
 - Text.CommitCM.CopyAuthorTime
 - Text.CommitCM.CopyCommitterTime
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.CopyAsPatch
 - Text.DeleteBranch.AskForRemote
 - Text.DeleteBranch.Force
@@ -325,7 +321,6 @@ This document shows the translation status of each locale file in the repository
 - Text.Configure.CommitMessageTemplate.BuiltinVars
 - Text.Configure.Git.AskBeforeAutoUpdatingSubmodules
 - Text.Configure.Git.ConventionalTypesOverride
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.ConfigureCustomActionControls.StringFormatter
 - Text.ConfigureCustomActionControls.StringFormatter.Tip
 - Text.ConfigureCustomActionControls.StringValue.Tip
@@ -490,7 +485,6 @@ This document shows the translation status of each locale file in the repository
 - Text.Compare.Commits.LeftOnly
 - Text.Compare.Commits.RightOnly
 - Text.Compare.Commits.Tips
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.ConfigureCustomActionControls.StringFormatter
 - Text.ConfigureCustomActionControls.StringFormatter.Tip
 - Text.ConfigureCustomActionControls.UseFriendlyName
@@ -581,7 +575,6 @@ This document shows the translation status of each locale file in the repository
 - Text.CheckoutDetached
 - Text.CheckoutDetached.Target
 - Text.CheckoutDetached.Warning
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.DeleteBranch.AskForRemote
 - Text.DeleteBranch.Force
 - Text.Diff.EmptyFile
@@ -694,7 +687,6 @@ This document shows the translation status of each locale file in the repository
 - Text.Configure.CustomAction.WaitForExit
 - Text.Configure.Git.AskBeforeAutoUpdatingSubmodules
 - Text.Configure.Git.ConventionalTypesOverride
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.Configure.Git.PreferredMergeMode
 - Text.Configure.IssueTracker.AddSampleGerritChangeIdCommit
 - Text.Configure.IssueTracker.AddSampleGiteeIssue
@@ -1122,7 +1114,6 @@ This document shows the translation status of each locale file in the repository
 - Text.Configure.CustomAction.Scope.Tag
 - Text.Configure.Git.AskBeforeAutoUpdatingSubmodules
 - Text.Configure.Git.ConventionalTypesOverride
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.Configure.Git.PreferredMergeMode
 - Text.Configure.IssueTracker.AddSampleGerritChangeIdCommit
 - Text.Configure.IssueTracker.Share
@@ -1488,7 +1479,6 @@ This document shows the translation status of each locale file in the repository
 - Text.Configure.CustomAction.Scope.Tag
 - Text.Configure.Git.AskBeforeAutoUpdatingSubmodules
 - Text.Configure.Git.ConventionalTypesOverride
-- Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules
 - Text.Configure.IssueTracker.AddSampleGerritChangeIdCommit
 - Text.Configure.IssueTracker.Share
 - Text.ConfigureCustomActionControls

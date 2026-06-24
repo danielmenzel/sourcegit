@@ -915,7 +915,6 @@
   <x:String x:Key="Text.Submodule.CopyBranch" xml:space="preserve">Ветка</x:String>
   <x:String x:Key="Text.Submodule.CopyPath" xml:space="preserve">Каталог</x:String>
   <x:String x:Key="Text.Submodule.Deinit" xml:space="preserve">Удалить подмодуль</x:String>
-  <x:String x:Key="Text.Submodule.FetchNested" xml:space="preserve">Извлечение вложенных подмодулей</x:String>
   <x:String x:Key="Text.Submodule.Histories" xml:space="preserve">Истории</x:String>
   <x:String x:Key="Text.Submodule.Move" xml:space="preserve">Переместить в</x:String>
   <x:String x:Key="Text.Submodule.Open" xml:space="preserve">Открыть подмодуль репозитория</x:String>

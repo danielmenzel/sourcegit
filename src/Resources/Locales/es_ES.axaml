@@ -915,7 +915,6 @@
   <x:String x:Key="Text.Submodule.CopyBranch" xml:space="preserve">Rama</x:String>
   <x:String x:Key="Text.Submodule.CopyPath" xml:space="preserve">Ruta Relativa</x:String>
   <x:String x:Key="Text.Submodule.Deinit" xml:space="preserve">Desinicializar Submódulo</x:String>
-  <x:String x:Key="Text.Submodule.FetchNested" xml:space="preserve">Fetch submódulos anidados</x:String>
   <x:String x:Key="Text.Submodule.Histories" xml:space="preserve">Historial</x:String>
   <x:String x:Key="Text.Submodule.Move" xml:space="preserve">Mover A</x:String>
   <x:String x:Key="Text.Submodule.Open" xml:space="preserve">Abrir Repositorio del Submódulo</x:String>

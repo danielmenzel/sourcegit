@@ -760,7 +760,6 @@
   <x:String x:Key="Text.Submodule.CopyBranch" xml:space="preserve">Branch</x:String>
   <x:String x:Key="Text.Submodule.CopyPath" xml:space="preserve">Jalur Relatif</x:String>
   <x:String x:Key="Text.Submodule.Deinit" xml:space="preserve">De-initialize</x:String>
-  <x:String x:Key="Text.Submodule.FetchNested" xml:space="preserve">Fetch submodule bersarang</x:String>
   <x:String x:Key="Text.Submodule.Histories" xml:space="preserve">Riwayat</x:String>
   <x:String x:Key="Text.Submodule.Move" xml:space="preserve">Pindahkan Ke</x:String>
   <x:String x:Key="Text.Submodule.Open" xml:space="preserve">Buka Repositori</x:String>

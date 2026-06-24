@@ -256,7 +256,6 @@
   <x:String x:Key="Text.Configure.Git.AutoFetchIntervalSuffix" xml:space="preserve">分钟</x:String>
   <x:String x:Key="Text.Configure.Git.ConventionalTypesOverride" xml:space="preserve">自定义规范化提交类型</x:String>
   <x:String x:Key="Text.Configure.Git.DefaultRemote" xml:space="preserve">默认远程</x:String>
-  <x:String x:Key="Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules" xml:space="preserve">自动更新子模块时启用 '--recursive' 选项</x:String>
   <x:String x:Key="Text.Configure.Git.PreferredMergeMode" xml:space="preserve">默认合并方式</x:String>
   <x:String x:Key="Text.Configure.IssueTracker" xml:space="preserve">ISSUE追踪</x:String>
   <x:String x:Key="Text.Configure.IssueTracker.AddSampleAzure" xml:space="preserve">新增匹配Azure DevOps规则</x:String>
@@ -925,7 +924,6 @@
   <x:String x:Key="Text.Submodule.CopyBranch" xml:space="preserve">跟踪分支</x:String>
   <x:String x:Key="Text.Submodule.CopyPath" xml:space="preserve">相对路径</x:String>
   <x:String x:Key="Text.Submodule.Deinit" xml:space="preserve">取消初始化</x:String>
-  <x:String x:Key="Text.Submodule.FetchNested" xml:space="preserve">拉取子孙模块</x:String>
   <x:String x:Key="Text.Submodule.Histories" xml:space="preserve">变更历史</x:String>
   <x:String x:Key="Text.Submodule.Move" xml:space="preserve">移动</x:String>
   <x:String x:Key="Text.Submodule.Open" xml:space="preserve">打开仓库</x:String>
@@ -963,7 +961,6 @@
   <x:String x:Key="Text.UpdateSubmodules.All" xml:space="preserve">更新所有子模块</x:String>
   <x:String x:Key="Text.UpdateSubmodules.Init" xml:space="preserve">如未初始化子模块，先初始化</x:String>
   <x:String x:Key="Text.UpdateSubmodules.Target" xml:space="preserve">子模块 ：</x:String>
-  <x:String x:Key="Text.UpdateSubmodules.Recursive" xml:space="preserve">递归更新子孙模块</x:String>
   <x:String x:Key="Text.UpdateSubmodules.UpdateToRemoteTrackingBranch" xml:space="preserve">更新到子模块自己的远程踪分支</x:String>
   <x:String x:Key="Text.URL" xml:space="preserve">仓库地址 ：</x:String>
   <x:String x:Key="Text.ViewLogs" xml:space="preserve">日志列表</x:String>

@@ -889,7 +889,6 @@
   <x:String x:Key="Text.Submodule.CopyBranch" xml:space="preserve">Branch</x:String>
   <x:String x:Key="Text.Submodule.CopyPath" xml:space="preserve">נתיב יחסי</x:String>
   <x:String x:Key="Text.Submodule.Deinit" xml:space="preserve">ביטול אתחול</x:String>
-  <x:String x:Key="Text.Submodule.FetchNested" xml:space="preserve">Fetch ל־submodules מקוננים</x:String>
   <x:String x:Key="Text.Submodule.Histories" xml:space="preserve">היסטוריה</x:String>
   <x:String x:Key="Text.Submodule.Move" xml:space="preserve">העבר אל</x:String>
   <x:String x:Key="Text.Submodule.Open" xml:space="preserve">פתח מאגר</x:String>

@@ -900,7 +900,6 @@
   <x:String x:Key="Text.Submodule.CopyBranch" xml:space="preserve">Κλάδος</x:String>
   <x:String x:Key="Text.Submodule.CopyPath" xml:space="preserve">Σχετική διαδρομή</x:String>
   <x:String x:Key="Text.Submodule.Deinit" xml:space="preserve">Απο-αρχικοποίηση</x:String>
-  <x:String x:Key="Text.Submodule.FetchNested" xml:space="preserve">Fetch ένθετων υπομονάδων</x:String>
   <x:String x:Key="Text.Submodule.Histories" xml:space="preserve">Ιστορικό</x:String>
   <x:String x:Key="Text.Submodule.Move" xml:space="preserve">Μετακίνηση...</x:String>
   <x:String x:Key="Text.Submodule.Open" xml:space="preserve">Άνοιγμα αποθετηρίου</x:String>

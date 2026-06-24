@@ -828,7 +828,6 @@ ${pure_files:N} Come ${files:N}, ma senza cartelle</x:String>
   <x:String x:Key="Text.Submodule.CopyBranch" xml:space="preserve">Branch</x:String>
   <x:String x:Key="Text.Submodule.CopyPath" xml:space="preserve">Percorso Relativo</x:String>
   <x:String x:Key="Text.Submodule.Deinit" xml:space="preserve">Deinizializza</x:String>
-  <x:String x:Key="Text.Submodule.FetchNested" xml:space="preserve">Recupera sottomoduli annidati</x:String>
   <x:String x:Key="Text.Submodule.Histories" xml:space="preserve">Cronologia</x:String>
   <x:String x:Key="Text.Submodule.Move" xml:space="preserve">Sposta</x:String>
   <x:String x:Key="Text.Submodule.Open" xml:space="preserve">Apri Repository del Sottomodulo</x:String>

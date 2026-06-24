@@ -177,10 +177,6 @@
                     ToolTip.Tip="fetch.prune=true"/>
 
           <CheckBox Grid.Row="10" Grid.Column="1"
-                    Content="{DynamicResource Text.Configure.Git.EnableRecursiveWhenAutoUpdatingSubmodules}"
-                    IsChecked="{Binding EnableRecursiveWhenAutoUpdatingSubmodules, Mode=TwoWay}"/>
-
-          <CheckBox Grid.Row="11" Grid.Column="1"
                     Content="{DynamicResource Text.Configure.Git.AskBeforeAutoUpdatingSubmodules}"
                     IsChecked="{Binding AskBeforeAutoUpdatingSubmodules, Mode=TwoWay}"/>
         </Grid>
