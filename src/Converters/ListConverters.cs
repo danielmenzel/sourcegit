@@ -23,7 +23,11 @@ namespace SourceGit.Converters
         public static readonly FuncValueConverter<IList, bool> IsOnlyTop100Shows =
             new FuncValueConverter<IList, bool>(v => v != null && v.Count > 100);
 
-        public static readonly FuncValueConverter<List<Models.Change>, IEnumerable<string>> ToFilePaths =
-            new FuncValueConverter<List<Models.Change>, IEnumerable<string>>(v => v?.Select(c => c.Path));
+        public static readonly FuncValueConverter<IList, List<string>> ToFilePaths =
+            new FuncValueConverter<IList, List<string>>(v =>
+            {
+                if (v is not List<Models.Change> changes) return null;
+                return changes.Select(c => c.Path).ToList();
+            });
     }
 }

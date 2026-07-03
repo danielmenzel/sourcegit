@@ -227,6 +227,7 @@ namespace SourceGit.Views
 
                 SubjectLength = subjectLen;
                 _subjectEndCharIdx = lastNonLineBreakCharIdx;
+                _textChanged = true;
             }
             else if (change.Property == SubjectLengthProperty || change.Property == SubjectGuideLengthProperty)
             {
@@ -243,6 +244,20 @@ namespace SourceGit.Views
                     return;
                 }
 
+                if (_suppressSuggestionsAfterAccept)
+                {
+                    _suppressSuggestionsAfterAccept = false;
+                    Suggestions = null;
+                    return;
+                }
+
+                if (!_textChanged)
+                {
+                    // Caret moved without text change (e.g. mouse click) — don't generate suggestions
+                    return;
+                }
+
+                _textChanged = false;
                 var caretIdx = CaretIndex;
                 var startIdx = Math.Max(Math.Min(text.Length - 1, caretIdx - 1), 0);
                 var hasWhitespace = false;
@@ -266,7 +281,7 @@ namespace SourceGit.Views
                 }
 
                 var suggestionMatchStartIdx = Math.Max(caretIdx - _column + 1, 0);
-                if (hasWhitespace || _column == 1 || suggestionMatchStartIdx < _subjectEndCharIdx)
+                if (_column == 1)
                 {
                     _suggestionMatchStartIdx = -1;
                     Suggestions = null;
@@ -277,7 +292,10 @@ namespace SourceGit.Views
                 var prefixEndIdx = editLine.IndexOfAny([' ', '\t', '\r', '\n']);
                 var prefix = prefixEndIdx > 0 ? editLine.Substring(0, prefixEndIdx) : editLine;
                 var matches = new List<CommitMessageTextBoxSuggestion>();
-                if (prefix.Length >= 2)
+
+                // Trailers: only suggest when at the start of a line (no leading whitespace),
+                // the prefix is at least 2 characters, and we're past the subject line
+                if (!hasWhitespace && prefix.Length >= 2 && suggestionMatchStartIdx >= _subjectEndCharIdx)
                 {
                     foreach (var t in _trailers)
                     {
@@ -285,48 +303,64 @@ namespace SourceGit.Views
                             !editLine.StartsWith(t, StringComparison.Ordinal))
                             matches.Add(new(this, t, suggestionMatchStartIdx, prefix.Length));
                     }
+                }
 
-                    // Add auto-complete for file paths
-                    var filePaths = AutoCompleteFilePaths;
-                    if (filePaths != null)
+                // File paths: match against the current word (after last whitespace before caret),
+                // independent of the line's first word or preceding whitespace
+                var wordStart = caretIdx;
+                for (; wordStart > suggestionMatchStartIdx; wordStart--)
+                {
+                    var ch = text[wordStart - 1];
+                    if (ch == ' ' || ch == '\t')
+                        break;
+                }
+
+                if (wordStart < caretIdx)
+                {
+                    var currentWord = text.Substring(wordStart, caretIdx - wordStart);
+                    if (currentWord.Length >= 2)
                     {
-                        var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                        foreach (var filePath in filePaths)
+                        var filePaths = AutoCompleteFilePaths;
+                        if (filePaths != null)
                         {
-                            var fileName = Path.GetFileName(filePath);
-                            var fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
-
-                            if (!string.IsNullOrEmpty(fileName) &&
-                                fileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
-                                !fileName.Equals(prefix, StringComparison.OrdinalIgnoreCase) &&
-                                added.Add(fileName))
+                            var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            foreach (var filePath in filePaths)
                             {
-                                matches.Add(new(this, fileName, suggestionMatchStartIdx, prefix.Length));
-                            }
+                                var fileName = Path.GetFileName(filePath);
+                                var fileNameWithoutExt = Path.GetFileNameWithoutExtension(filePath);
 
-                            if (!string.IsNullOrEmpty(fileNameWithoutExt) &&
-                                !fileNameWithoutExt.Equals(fileName, StringComparison.OrdinalIgnoreCase) &&
-                                fileNameWithoutExt.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
-                                !fileNameWithoutExt.Equals(prefix, StringComparison.OrdinalIgnoreCase) &&
-                                added.Add(fileNameWithoutExt))
-                            {
-                                matches.Add(new(this, fileNameWithoutExt, suggestionMatchStartIdx, prefix.Length));
-                            }
-
-                            // Suggest each parent directory name in the path
-                            var dir = Path.GetDirectoryName(filePath);
-                            while (!string.IsNullOrEmpty(dir))
-                            {
-                                var dirName = Path.GetFileName(dir);
-                                if (!string.IsNullOrEmpty(dirName) &&
-                                    dirName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
-                                    !dirName.Equals(prefix, StringComparison.OrdinalIgnoreCase) &&
-                                    added.Add(dirName))
+                                if (!string.IsNullOrEmpty(fileName) &&
+                                    fileName.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) &&
+                                    !fileName.Equals(currentWord, StringComparison.OrdinalIgnoreCase) &&
+                                    added.Add(fileName))
                                 {
-                                    matches.Add(new(this, dirName, suggestionMatchStartIdx, prefix.Length));
+                                    matches.Add(new(this, fileName, wordStart, currentWord.Length));
                                 }
 
-                                dir = Path.GetDirectoryName(dir);
+                                if (!string.IsNullOrEmpty(fileNameWithoutExt) &&
+                                    !fileNameWithoutExt.Equals(fileName, StringComparison.OrdinalIgnoreCase) &&
+                                    fileNameWithoutExt.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) &&
+                                    !fileNameWithoutExt.Equals(currentWord, StringComparison.OrdinalIgnoreCase) &&
+                                    added.Add(fileNameWithoutExt))
+                                {
+                                    matches.Add(new(this, fileNameWithoutExt, wordStart, currentWord.Length));
+                                }
+
+                                // Suggest each parent directory name in the path
+                                var dir = Path.GetDirectoryName(filePath);
+                                while (!string.IsNullOrEmpty(dir))
+                                {
+                                    var dirName = Path.GetFileName(dir);
+                                    if (!string.IsNullOrEmpty(dirName) &&
+                                        dirName.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase) &&
+                                        !dirName.Equals(currentWord, StringComparison.OrdinalIgnoreCase) &&
+                                        added.Add(dirName))
+                                    {
+                                        matches.Add(new(this, dirName, wordStart, currentWord.Length));
+                                    }
+
+                                    dir = Path.GetDirectoryName(dir);
+                                }
                             }
                         }
                     }
@@ -384,6 +418,7 @@ namespace SourceGit.Views
                 else if (e.Key == Key.Enter || e.Key == Key.Tab)
                 {
                     var selected = _suggestions[_selectedSuggestionIdx];
+                    _suppressSuggestionsAfterAccept = true;
                     selected.Use();
                     e.Handled = true;
                 }
@@ -454,6 +489,8 @@ namespace SourceGit.Views
         private int _subjectEndCharIdx = -1;
         private double _subjectEndY = 0;
         private bool _warnSubjectLen = false;
+        internal bool _suppressSuggestionsAfterAccept = false;
+        private bool _textChanged = false;
         private int _suggestionMatchStartIdx = -1;
         private List<CommitMessageTextBoxSuggestion> _suggestions = null;
         private int _selectedSuggestionIdx = 0;
@@ -569,10 +606,21 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+            if (change.Property == AutoCompleteFilePathsProperty && Editor != null)
+                Editor.AutoCompleteFilePaths = AutoCompleteFilePaths;
+        }
+
         private void OnSuggestionTapped(object sender, TappedEventArgs e)
         {
             if (sender is Control { DataContext: CommitMessageTextBoxSuggestion suggestion })
+            {
+                if (suggestion.Target is CommitMessageTextBox cmTextBox)
+                    cmTextBox._suppressSuggestionsAfterAccept = true;
                 suggestion.Use();
+            }
 
             e.Handled = true;
         }
