@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Compile Include="../../src/Models/BuildServerCredentials.cs" Link="Models/BuildServerCredentials.cs" />
+    <Compile Include="../../src/Models/BuildServerIntegration.cs" Link="Models/BuildServerIntegration.cs" />
+    <Compile Include="../../src/Models/BuildStatus.cs" Link="Models/BuildStatus.cs" />
+    <Compile Include="../../src/Models/CommitBuildInfo.cs" Link="Models/CommitBuildInfo.cs" />
+    <Compile Include="../../src/Models/IBuildServerAdapter.cs" Link="Models/IBuildServerAdapter.cs" />
+    <Compile Include="../../src/Models/JenkinsBuildServerAdapter.cs" Link="Models/JenkinsBuildServerAdapter.cs" />
+    <Compile Include="../../src/Models/Notification*.cs" Link="Models/%(Filename)%(Extension)" />
+    <Compile Include="../../src/ViewModels/BuildServerPoller.cs" Link="ViewModels/BuildServerPoller.cs" />
+  </ItemGroup>
+</Project>

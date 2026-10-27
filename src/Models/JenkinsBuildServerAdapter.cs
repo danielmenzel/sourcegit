@@ -20,11 +20,12 @@ namespace SourceGit.Models
         private static readonly SemaphoreSlim s_promptSemaphore = new(1, 1);
         private static readonly Dictionary<string, BuildServerCredentials> s_credentialCache = new();
 
-        // Jenkins tree query for build info - includes displayName for build configuration info
-        private const string JenkinsTreeBuildInfo = "number,displayName,result,timestamp,url,building,duration,actions[lastBuiltRevision[SHA1,branch[name]],totalCount,failCount,skipCount,parameters[name,value]]";
+        // Request only fields that are used to match and display recent builds.
+        private const string JenkinsTreeBuildInfo = "number,displayName,result,url,building,actions[lastBuiltRevision[SHA1],parameters[name,value]]";
+        private const int RecentBuildLimit = 100;
 
         // Suppress repeated failure notifications. The poller calls QueryBuildStatusAsync
-        // every 10-120s, so without this an unreachable build server would spam an error
+        // every 30-120s, so without this an unreachable build server would spam an error
         // toast on every poll. We notify once when entering an error state and stay quiet
         // until a successful query resets it.
         private string _lastErrorKey;
@@ -34,7 +35,10 @@ namespace SourceGit.Models
             _config = config;
             _repositoryPath = repositoryPath;
 
-            var handler = new HttpClientHandler();
+            var handler = new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate | DecompressionMethods.Brotli,
+            };
             handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
 
             _httpClient = new HttpClient(handler);
@@ -60,12 +64,22 @@ namespace SourceGit.Models
             }
         }
 
-        public async Task<Dictionary<string, List<CommitBuildInfo>>> QueryBuildStatusAsync(List<string> commitShas)
+        public void Dispose()
+        {
+            _httpClient?.Dispose();
+        }
+
+        public async Task<Dictionary<string, List<CommitBuildInfo>>> QueryBuildStatusAsync(List<string> commitShas, CancellationToken cancellationToken = default)
         {
             var result = new Dictionary<string, List<CommitBuildInfo>>();
 
             if (_config is null || string.IsNullOrEmpty(_config.ServerUrl) || string.IsNullOrEmpty(_config.ProjectName))
                 return result;
+
+            // HttpClient.Timeout covers headers only with ResponseHeadersRead.
+            // This deadline also covers reading and parsing the response body.
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromMinutes(2));
 
             try
             {
@@ -74,10 +88,14 @@ namespace SourceGit.Models
                 
                 foreach (var projectName in projectNames)
                 {
-                    await QueryProjectBuildsAsync(projectName.Trim(), commitShas, result, hasRetriedWithCredentials: false);
+                    await QueryProjectBuildsAsync(projectName.Trim(), commitShas, result, false, timeout.Token);
                 }
 
                 return result;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -106,7 +124,7 @@ namespace SourceGit.Models
             _lastErrorKey = null;
         }
 
-        private async Task QueryProjectBuildsAsync(string projectName, List<string> commitShas, Dictionary<string, List<CommitBuildInfo>> result, bool hasRetriedWithCredentials)
+        private async Task QueryProjectBuildsAsync(string projectName, List<string> commitShas, Dictionary<string, List<CommitBuildInfo>> result, bool hasRetriedWithCredentials, CancellationToken cancellationToken)
         {
             var baseUrl = _config.ServerUrl.TrimEnd('/');
             string requestUrl;
@@ -117,22 +135,24 @@ namespace SourceGit.Models
             {
                 realProjectName = projectName.Substring(0, projectName.Length - 2);
                 var jobUrl = $"{baseUrl}/job/{Uri.EscapeDataString(realProjectName)}/api/json";
-                requestUrl = $"{jobUrl}?depth=2&tree=jobs[builds[{JenkinsTreeBuildInfo}]]";
+                requestUrl = $"{jobUrl}?tree=jobs[builds[{JenkinsTreeBuildInfo}]{{0,{RecentBuildLimit}}}]";
             }
             else
             {
                 var jobUrl = $"{baseUrl}/job/{Uri.EscapeDataString(projectName)}/api/json";
-                requestUrl = $"{jobUrl}?depth=1&tree=builds[{JenkinsTreeBuildInfo}]";
+                requestUrl = $"{jobUrl}?tree=builds[{JenkinsTreeBuildInfo}]{{0,{RecentBuildLimit}}}";
             }
 
             using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
-            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == HttpStatusCode.Forbidden && !hasRetriedWithCredentials)
                 {
-                    var credentials = await GetBuildServerCredentialsAsync(useStoredCredentials: false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var credentials = await GetBuildServerCredentialsAsync(false, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     if (credentials != null && !string.IsNullOrEmpty(credentials.Username))
                     {
@@ -145,7 +165,7 @@ namespace SourceGit.Models
                         _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", token);
 
                         // Retry the request with new credentials (only once)
-                        await QueryProjectBuildsAsync(projectName, commitShas, result, hasRetriedWithCredentials: true);
+                        await QueryProjectBuildsAsync(projectName, commitShas, result, true, cancellationToken);
                         return;
                     }
 
@@ -163,8 +183,8 @@ namespace SourceGit.Models
             // outage produces exactly one new notification.
             ClearFailureState();
 
-            using var stream = await response.Content.ReadAsStreamAsync();
-            using var doc = await JsonDocument.ParseAsync(stream);
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
 
             // Process freestyle job builds
             if (doc.RootElement.TryGetProperty("builds", out var buildsElement) && buildsElement.ValueKind == JsonValueKind.Array)
@@ -398,7 +418,7 @@ namespace SourceGit.Models
             return null;
         }
 
-        private async Task<BuildServerCredentials> GetBuildServerCredentialsAsync(bool useStoredCredentials)
+        private async Task<BuildServerCredentials> GetBuildServerCredentialsAsync(bool useStoredCredentials, CancellationToken cancellationToken)
         {
             var credentialKey = $"{_repositoryPath}|{_config.Type}|{_config.ServerUrl}";
 
@@ -426,7 +446,7 @@ namespace SourceGit.Models
             }
 
             // Serialized credential prompt to avoid multiple dialogs
-            await s_promptSemaphore.WaitAsync();
+            await s_promptSemaphore.WaitAsync(cancellationToken);
             try
             {
                 // Check cache again in case another thread just filled it

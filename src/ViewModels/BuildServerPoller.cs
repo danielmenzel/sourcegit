@@ -11,16 +11,15 @@ namespace SourceGit.ViewModels
         private readonly string _repositoryPath;
         private readonly Func<Models.IBuildServerAdapter> _adapterFactory;
         private readonly Action _onStatusChanged;
-        private Timer _pollingTimer;
-        private volatile bool _isPolling;
-        private volatile bool _isPollInProgress;
-        private DateTime _lastPollTime;
-        private bool _hasRunningBuilds;
-        private List<Models.Commit> _currentCommits;
         private readonly object _pollLock = new();
+        private Models.IBuildServerAdapter _adapter;
+        private CancellationTokenSource _cancellation;
+        private Task _pollingTask = Task.CompletedTask;
+        private List<Models.Commit> _currentCommits = [];
+        private bool _disposed;
 
-        private const int ShortPollInterval = 10000;  // 10 seconds
-        private const int LongPollInterval = 120000;  // 120 seconds
+        private const int ShortPollInterval = 30000;
+        private const int LongPollInterval = 120000;
 
         public BuildServerPoller(
             string repositoryPath,
@@ -34,130 +33,148 @@ namespace SourceGit.ViewModels
 
         public void StartPolling(List<Models.Commit> commits)
         {
-            if (_isPolling)
-                return;
+            ArgumentNullException.ThrowIfNull(commits);
+            lock (_pollLock)
+            {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                _currentCommits = new List<Models.Commit>(commits);
+                if (_cancellation != null)
+                    return;
 
-            _isPolling = true;
-            _lastPollTime = DateTime.MinValue;
-            _hasRunningBuilds = true;
-            _currentCommits = commits;
-
-            // Start immediately and then schedule recurring polls
-            Task.Run(PollBuildStatusAsync);
+                var cancellation = new CancellationTokenSource();
+                _cancellation = cancellation;
+                var previous = _pollingTask;
+                // A restart must wait for the previous request to stop. The old
+                // loop cannot publish results or schedule another request.
+                _pollingTask = Task.Run(() => PollBuildStatusAsync(previous, cancellation));
+            }
         }
 
         public void StopPolling()
         {
-            _isPolling = false;
-            _pollingTimer?.Dispose();
-            _pollingTimer = null;
-        }
-
-        public void UpdateCommits(List<Models.Commit> commits)
-        {
-            if (!_isPolling)
-                return;
-
-            _currentCommits = commits;
-            // Don't trigger immediate poll - let the timer handle it
+            lock (_pollLock)
+            {
+                _cancellation?.Cancel();
+                _cancellation = null;
+            }
         }
 
         public void Dispose()
         {
-            StopPolling();
-        }
-
-        private async Task PollBuildStatusAsync()
-        {
-            // Prevent concurrent polling
+            Models.IBuildServerAdapter adapter = null;
             lock (_pollLock)
             {
-                if (_isPollInProgress || !_isPolling)
+                if (_disposed)
                     return;
-                _isPollInProgress = true;
-            }
 
+                _disposed = true;
+                _cancellation?.Cancel();
+                _cancellation = null;
+                if (_pollingTask.IsCompleted)
+                {
+                    adapter = _adapter;
+                    _adapter = null;
+                }
+                // An active loop disposes its adapter after the request exits.
+            }
+            adapter?.Dispose();
+        }
+
+        private async Task PollBuildStatusAsync(Task previous, CancellationTokenSource cancellation)
+        {
+            var token = cancellation.Token;
             try
             {
-                var commits = _currentCommits;
-                if (commits is null || commits.Count == 0)
-                    return;
-
-                var adapter = _adapterFactory();
-                if (adapter is null)
-                    return;
-
-                // Limit to first 100 commits to avoid overwhelming Jenkins
-                var commitShas = commits.Take(100).Select(c => c.SHA).ToList();
-
-                // Query build status
-                var buildStatuses = await adapter.QueryBuildStatusAsync(commitShas);
-
-                if (!_isPolling)
-                    return;
-
-                _hasRunningBuilds = false;
-                var hasUpdates = false;
-
-                if (buildStatuses != null && buildStatuses.Count > 0)
+                await previous.ConfigureAwait(false);
+                while (true)
                 {
-                    // Update commits with build status
-                    foreach (var commit in commits)
+                    token.ThrowIfCancellationRequested();
+                    var hasRunningBuilds = false;
+                    try
                     {
-                        if (buildStatuses.TryGetValue(commit.SHA, out var buildInfos))
-                        {
-                            commit.BuildInfos = buildInfos;
-                            hasUpdates = true;
-
-                            // Check if any builds are still running
-                            foreach (var buildInfo in buildInfos)
-                            {
-                                if (buildInfo.Status == Models.BuildStatus.InProgress)
-                                {
-                                    _hasRunningBuilds = true;
-                                    break;
-                                }
-                            }
-                        }
+                        hasRunningBuilds = await QueryBuildStatusAsync(token).ConfigureAwait(false);
                     }
+                    catch (Exception ex)
+                    {
+                        // Some transports report a closed connection instead of
+                        // OperationCanceledException. A restart must still work.
+                        token.ThrowIfCancellationRequested();
+                        System.Diagnostics.Debug.WriteLine($"[BuildServerPoller] {_repositoryPath}: {ex.Message}");
+                    }
+
+                    var interval = hasRunningBuilds ? ShortPollInterval : LongPollInterval;
+                    await Task.Delay(interval, token).ConfigureAwait(false);
                 }
-
-                // Notify once after all updates are complete
-                if (hasUpdates)
-                    _onStatusChanged?.Invoke();
-
-                _lastPollTime = DateTime.Now;
             }
-            catch (Exception ex)
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
-                System.Diagnostics.Debug.WriteLine($"[BuildServerPoller] Poll failed: {ex.Message}");
+                // Closing a repository or stopping polling cancels the body read too.
             }
             finally
             {
+                Models.IBuildServerAdapter adapter = null;
                 lock (_pollLock)
                 {
-                    _isPollInProgress = false;
+                    if (ReferenceEquals(_cancellation, cancellation))
+                        _cancellation = null;
+                    if (_disposed)
+                    {
+                        adapter = _adapter;
+                        _adapter = null;
+                    }
                 }
-
-                // Schedule next poll based on whether there are running builds
-                ScheduleNextPoll();
+                cancellation.Dispose();
+                adapter?.Dispose();
             }
         }
 
-        private void ScheduleNextPoll()
+        private async Task<bool> QueryBuildStatusAsync(CancellationToken cancellationToken)
         {
-            if (!_isPolling)
-                return;
+            List<string> commitShas;
+            lock (_pollLock)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                commitShas = _currentCommits.Take(100).Select(c => c.SHA).ToList();
+            }
+            if (commitShas.Count == 0)
+                return false;
 
-            // Use short interval if there are running builds, otherwise use long interval
-            var interval = _hasRunningBuilds ? ShortPollInterval : LongPollInterval;
+            _adapter ??= _adapterFactory();
+            if (_adapter == null)
+                return false;
 
-            _pollingTimer?.Dispose();
-            _pollingTimer = new Timer(
-                _ => Task.Run(PollBuildStatusAsync),
-                null,
-                interval,
-                Timeout.Infinite);
+            cancellationToken.ThrowIfCancellationRequested();
+            var buildStatuses = await _adapter.QueryBuildStatusAsync(commitShas, cancellationToken).ConfigureAwait(false);
+            List<Models.Commit> commits;
+            lock (_pollLock)
+            {
+                // Ignore responses from cancelled requests. Each commit list is
+                // replaced as a whole, so it can be read outside the lock.
+                cancellationToken.ThrowIfCancellationRequested();
+                commits = _currentCommits;
+            }
+            if (buildStatuses == null)
+                return false;
+
+            var hasRunningBuilds = false;
+            var hasUpdates = false;
+            foreach (var commit in commits)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (buildStatuses.TryGetValue(commit.SHA, out var buildInfos))
+                {
+                    // Property-change handlers can dispatch to the UI thread.
+                    // Do not hold the polling lock while invoking them.
+                    commit.BuildInfos = buildInfos;
+                    hasUpdates = true;
+                    hasRunningBuilds |= buildInfos.Any(b => b.Status == Models.BuildStatus.InProgress);
+                }
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (hasUpdates)
+                _onStatusChanged?.Invoke();
+            return hasRunningBuilds;
         }
     }
 }

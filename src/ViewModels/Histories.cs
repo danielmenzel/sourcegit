@@ -10,7 +10,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
 {
-    public class Histories : ObservableObject
+    public class Histories : ObservableObject, IDisposable
     {
         public bool IsLoading
         {
@@ -107,6 +107,9 @@ namespace SourceGit.ViewModels
             get => _commits;
             set
             {
+                if (_isDisposed)
+                    return;
+
                 var oldCommits = _commits;
 
                 // Ignore selection changes while we're updating the commits list
@@ -141,7 +144,7 @@ namespace SourceGit.ViewModels
                     if (value.Count > 0)
                     {
                         InitializeBuildServerPolling();
-                        _buildServerPoller?.UpdateCommits(value);
+                        _buildServerPoller?.StartPolling(value);
                     }
                     else
                     {
@@ -277,6 +280,14 @@ namespace SourceGit.ViewModels
 
             // Subscribe to repository property changes to detect when BuildServer config loads
             _repo.PropertyChanged += OnRepositoryPropertyChanged;
+        }
+
+        public void Dispose()
+        {
+            _isDisposed = true;
+            _repo.PropertyChanged -= OnRepositoryPropertyChanged;
+            _buildServerPoller?.Dispose();
+            _buildServerPoller = null;
         }
 
         private void OnRepositoryPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -635,6 +646,7 @@ namespace SourceGit.ViewModels
         private bool _hasSingleRemote = false;
         private CommitDetailSharedData _commitDetailSharedData = null;
         private BuildServerPoller _buildServerPoller = null;
+        private bool _isDisposed;
         private bool _isLoading = true;
         private List<Models.Commit> _commits = [];
         private Models.CommitGraph _graph = null;
@@ -662,13 +674,12 @@ namespace SourceGit.ViewModels
             if (_commits.Count > 0 && _repo?.BuildServer != null)
             {
                 InitializeBuildServerPolling();
-                _buildServerPoller?.StartPolling(_commits);
             }
         }
 
         private void InitializeBuildServerPolling()
         {
-            if (_buildServerPoller != null)
+            if (_isDisposed || _buildServerPoller != null)
                 return;
 
             // Check if build server is configured before creating the poller
